@@ -137,7 +137,17 @@ RA.df <- CSS.3 %>% left_join(ASV.w.taxonomy, by = "ASV")
 
 RA.df <- seq.taxa.combined.1 %>% dplyr::relocate('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B","09.15_A", "09.15_B", "10.01_A", "10.01_B") %>% mutate_if(is.numeric, ~replace_na(., 0)) 
 
-#Estimating Water values during aerosol sampling periods rather than at interval points
+#counting overlapping ASVs with taxonomic descriptions
+PM.samples <- RA.df %>% dplyr::select('ASV', 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B') %>% column_to_rownames("ASV")
+PM.samples.1 <- PM.samples[rowSums(PM.samples[])>0,]
+PM.samples.2 <- rownames_to_column(PM.samples.1) 
+water.samples <- RA.df %>% dplyr::select('ASV', "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B","09.15_A", "09.15_B", "10.01_A", "10.01_B") %>% column_to_rownames("ASV")
+water.samples.1 <- water.samples[rowSums(water.samples[])>0,]
+water.samples.2 <- rownames_to_column(water.samples.1) 
+
+overlapping.ASVs <- left_join(water.samples.2, PM.samples.2, by = "rowname") %>% na.omit() %>% mutate(ASV = rowname) %>% left_join(ASV.w.taxonomy) %>% select('ASV', 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B","09.15_A", "09.15_B", "10.01_A", "10.01_B", "Kingdom","Phylum", "Class", "Order", "Family", "Genus", "Species", "NA.")
+                           
+#Estimating water values during aerosol sampling periods rather than at interval points
 write.csv(RA.df, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/to.calculate.water.during.sampling.periods.csv")
 water.sampling.periods <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/water.sampling.period.csv", header=TRUE)
 RA.df.0 <- RA.df %>% left_join(water.sampling.periods, by = "ASV", keep = FALSE) 
