@@ -2,7 +2,7 @@
 rm(list=ls()) #clear environment
 setwd("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs") #set working directory 
 #install all necessary packages
-library(dplyr); library(tidyr); library(ggplot2); library(gam); library(gamm4); library(cowplot); library(mgcv); library(reshape2); library(MuMIn); library(stringr); library(ISLR); library(voxel); library(gridExtra); library(purrr); library(data.table); library(phyloseq); library(decontam); library(RAM); library(tidyverse); library(DESeq2); library(microbiome); library(vegan); library(viridis); library(patchwork); library(gapminder); library(tidyverse); library(ape); library(RColorBrewer)
+library(dplyr); library(tidyr); library(ggplot2); library(gam); library(gamm4); library(cowplot); library(mgcv); library(reshape2); library(MuMIn); library(stringr); library(ISLR); library(voxel); library(gridExtra); library(purrr); library(data.table); library(phyloseq); library(decontam); library(RAM); library(tidyverse); library(DESeq2); library(microbiome); library(vegan); library(viridis); library(patchwork); library(gapminder); library(tidyverse); library(ape); library(RColorBrewer); library(ggpubr);library(rstatix)
 
 #Reading in the dada2 datasets 
 aerosol <- read.csv("Aerosol_16S_counts.csv", header = TRUE, na.strings = c(""," ", ".", "NA"))
@@ -10,7 +10,6 @@ names(aerosol)<-sapply(str_remove_all(colnames(aerosol),"AERO_"),"[")
 water <- read.csv("Water_16S_counts.csv", header = TRUE, na.strings = c(""," ", ".", "NA"))  
 names(water)<-sapply(str_remove_all(colnames(water),"W_"),"[")
 ASV.w.taxonomy <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/PhyloseqReadyFiles/Taxonomy_Table.csv", header=TRUE)
-?lm()
 #Removing the top ASVs found in the field blanks entirely from PM analysis:
 # AEROSOL
 all.ASVs <- aerosol %>% select(ASV)
@@ -440,8 +439,8 @@ ggplot(genera.for.heat.viz, aes(Sampling_Period, Genus, fill= `log.r-AF`)) + geo
 species.for.heat.viz <- species.AFs %>% filter(Species == "Aphanizomenon_NIES81" | Species == "Caenarcaniphilales_XX" | Species == "Chroococcidiopsis_SAG_2023" | Species == "Cyanobium_PCC6307" | Species == "Dolichospermum_NIES41" | Species == "Microcystis_PCC7914" | Species == "Obscuribacterales_XX"| Species == "Synechococcus_PCC7942"| Species  == "Tolypothrix_PCC7601")
 ggplot(species.for.heat.viz, aes(Sampling_Period, Species, fill= `log.r-AF`)) + geom_tile()  
 
-# Univariate Regressions
-# loading in the water quality metadata
+# ---------------------------------------- LOADING IN ALL METADATA ----------------------------------------
+# Loading in the water quality metadata
 water_metadata <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/master_metadata.csv", header = TRUE, na.strings = c(""," ", ".", "NA")) %>% dplyr::select(-SAMPLE.ID) 
 Sonde.Data <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/Sonde_Data.csv", header = TRUE, na.strings = c(""," ", ".", "NA")) %>% mutate(Site = recode(Site, `1`="A", `2`="B"))
 all.water.metadata <- cbind(water_metadata, Sonde.Data) %>% select(-c(22,23)) %>% unite("Site_Date", c(Site,Date), sep = "_") 
@@ -453,6 +452,8 @@ Sd.metadata <- all.water.metadata %>% group_by(Site_Date) %>% dplyr::summarise_a
 colnames(Sd.metadata) <- paste(colnames(Sd.metadata),"sd",sep="_")
 Sd.metadata.1 <- Sd.metadata %>% dplyr::rename("Site_Date" = "Site_Date_sd") %>% tidyr::separate(col = Site_Date, into = c("Site", "Date"), sep = "_", convert = TRUE) 
 metadata.with.sd <- avg.metadata.1 %>% dplyr::left_join(Sd.metadata.1, by = c("Site", "Date"), keep = FALSE)
+
+# Converting to Sampling Periods 
 write.csv(metadata.with.sd, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/all.water.metadata.csv") # this data frame was exported to manipulate externally in Excel. To approximate the water conditions during the course of each aerosol sampling, water metadata collected at the start and end of each aerosol sampling period was averaged. 
 Sampling_Period_water_metadata.with.sd <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/all.water.metadata.2.csv", header = TRUE, na.strings = c(""," ", ".", "NA","#DIV/0!"))
 Sampling_Period_water_metadata <- Sampling_Period_water_metadata.with.sd %>% select(1:29)
@@ -474,6 +475,229 @@ species.RAs.2 <- species.RAs %>% pivot_wider(names_from = Species, values_from =
 relative.abundances <- class.RAs.2 %>% left_join(species.RAs.2, by = c("Site", "Sampling_Period"))
 regression.df.0 <- all.metadata %>% dplyr::left_join(relative.abundances, by = c("Site", "Sampling_Period"))
 
+# Loading in individual PM readings from pDR data
+col.names <- c("Site", "record", "ug/m3", "Temp", "RHumidity", "AtmoPressure", "Flags", "Time", "Date")
+june.23.a <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-06-23_pDRA.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+A <- as.data.frame(rep("A", times = 12529, length.out = NA, each = 1)) 
+colnames(A) <- "Site"
+june.23.a.1 <- cbind(A, june.23.a)
+colnames(june.23.a.1) <- col.names 
+june.23.a.1 <- june.23.a.1 %>% dplyr::select(-record)
+june.23.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-06-23_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+B <- as.data.frame(rep("B", times = 16964, length.out = NA, each = 1)) 
+colnames(A) <- "Site"
+june.23.b.1 <- cbind(B, june.23.b)
+colnames(june.23.b.1) <- col.names 
+june.23.b.1 <- june.23.b.1 %>% dplyr::select(-record)
+july.07.a.1 <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRA.1.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+july.07.a.2 <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRA.2.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+july.07.a <- rbind(july.07.a.1, july.07.a.2)
+A.1 <- as.data.frame(rep("A", times = 16374, length.out = NA, each = 1)) 
+colnames(A.1) <- "Site"
+july.07.a.3 <- cbind(A.1, july.07.a)
+colnames(july.07.a.3) <- col.names 
+july.07.a.3 <- july.07.a.3 %>% dplyr::select(-record)
+july.07.b.1 <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRB.1.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+july.07.b.2 <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRB.2.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+july.07.b <- rbind(july.07.b.1, july.07.b.2)
+B.1 <- as.data.frame(rep("A", times = 19648, length.out = NA, each = 1)) 
+colnames(B.1) <- "Site"
+july.07.b.3 <- cbind(B.1, july.07.b)
+colnames(july.07.b.3) <- col.names 
+july.07.b.3 <- july.07.b.3 %>% dplyr::select(-record)
+july.21.a <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-21_pDRA.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+A.2 <- as.data.frame(rep("A", times = 20098, length.out = NA, each = 1)) 
+colnames(A.2) <- "Site"
+july.21.a.1 <- cbind(A.2, july.21.a)
+colnames(july.21.a.1) <- col.names 
+july.21.a.1 <- july.21.a.1 %>% dplyr::select(-record)
+july.21.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-21_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+B.2 <- as.data.frame(rep("B", times = 20041, length.out = NA, each = 1)) 
+colnames(B.2) <- "Site"
+july.21.b.1 <- cbind(B.2, july.21.b)
+colnames(july.21.b.1) <- col.names 
+july.21.b.1 <- july.21.b.1 %>% dplyr::select(-record)
+aug.03.a <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-08-03_pDRA.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+A.3 <- as.data.frame(rep("A", times = 3426, length.out = NA, each = 1)) 
+colnames(A.3) <- "Site"
+aug.03.a.1 <- cbind(A.3, aug.03.a)
+colnames(aug.03.a.1) <- col.names 
+aug.03.a.1 <- aug.03.a.1 %>% dplyr::select(-record)
+aug.03.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-08-03_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+B.3 <- as.data.frame(rep("B", times = 18537, length.out = NA, each = 1)) 
+colnames(B.3) <- "Site"
+aug.03.b.1 <- cbind(B.3, aug.03.b)
+colnames(aug.03.b.1) <- col.names 
+aug.03.b.1 <- aug.03.b.1 %>% dplyr::select(-record)
+aug.18.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-08-18_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+B.4 <- as.data.frame(rep("B", times = 8553, length.out = NA, each = 1)) 
+colnames(B.4) <- "Site"
+aug.18.b.1 <- cbind(B.4, aug.18.b)
+colnames(aug.18.b.1) <- col.names 
+aug.18.b.1 <- aug.18.b.1 %>% dplyr::select(-record)
+sept.01.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-09-01_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+B.5 <- as.data.frame(rep("A", times = 34186, length.out = NA, each = 1)) 
+colnames(B.5) <- "Site"
+sept.01.b.3 <- cbind(B.5, sept.01.b)
+colnames(sept.01.b.3) <- col.names 
+sept.01.b.3 <- sept.01.b.3 %>% dplyr::select(-record)
+sept.15.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-09-15_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+B.6 <- as.data.frame(rep("B", times = 20058, length.out = NA, each = 1)) 
+colnames(B.6) <- "Site"
+sept.15.b.1 <- cbind(B.6, sept.15.b)
+colnames(sept.15.b.1) <- col.names 
+sept.15.b.1 <- sept.15.b.1 %>% dplyr::select(-record)
+oct.01.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-10-01_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+B.7 <- as.data.frame(rep("B", times = 23171, length.out = NA, each = 1)) 
+colnames(B.7) <- "Site"
+oct.01.b.1 <- cbind(B.7, oct.01.b)
+colnames(oct.01.b.1) <- col.names 
+oct.01.b.1 <- oct.01.b.1 %>% dplyr::select(-record)
+
+# Time-series of ambient PM2.5 
+# cleaning the pDR data 
+all.pdr.data <- rbind(june.23.a.1, june.23.b.1, july.07.a.3, july.07.b.3, july.21.a.1, july.21.b.1, aug.03.a.1, aug.03.b.1, aug.18.b.1, sept.01.b.3, sept.15.b.1, oct.01.b.1) 
+all.pdr.data <- all.pdr.data %>% dplyr::mutate(Site = as.character(Site), `ug/m3` = as.numeric(`ug/m3`), Temp = as.numeric(Temp), RHumidity = as.numeric(RHumidity), AtmoPressure = as.numeric(AtmoPressure), Time = as.character(Time, "%H%M%S"), Date = as.Date(Date, "%d-%b-%Y")) %>% dplyr::select(-Flags)
+# 1. selecting daytime readings only 
+all.pdr.data.1 <- all.pdr.data %>% mutate(Time.1 = as.numeric(gsub("[[:punct:]]", "", Time)))
+daytime <- all.pdr.data.1 %>% dplyr::filter(Time.1 > 70000 & Time.1 < 190000) 
+# 2. removal of days with known external sources of PM (e.g. fireworks, military activity, spider found in equipment)
+cleaned <- daytime %>% dplyr::filter(Date != "2020-07-04", Date != "2020-07-05", Date != "2020-07-06", Date != "2020-06-28", Date != "2020-09-03") 
+to.remove <- cleaned %>% dplyr::filter(Site == "B" & Date == "2020-07-11" |
+                                         Site == "B" & Date == "2020-07-12"|
+                                         Site == "B" & Date == "2020-07-13"|
+                                         Site == "B" & Date == "2020-07-14"|
+                                         Site == "B" & Date == "2020-07-15"|
+                                         Site == "B" & Date == "2020-07-16"|
+                                         Site == "B" & Date == "2020-07-17"|
+                                         Site == "B" & Date == "2020-07-18"|
+                                         Site == "B" & Date == "2020-07-19"|
+                                         Site == "B" & Date == "2020-07-20")
+cleaned.2 <- anti_join(cleaned, to.remove)
+# 3. outliers calculated and removed via z-scores (z > 3)
+all.pdr.data.2 <- daytime %>% mutate(date.time = as.POSIXct(paste(Date, Time), format="%Y-%m-%d %H:%M:%S"))
+mass.conc.2 <- all.pdr.data.2 %>% dplyr::select(Site,`ug/m3`, date.time)
+only.mass.conc.2 <- mass.conc.2 %>% dplyr::select(`ug/m3`)
+z_scores.2 <- mass.conc.2 %>% mutate(z.score = sapply(only.mass.conc.2, function(only.mass.conc.2) (abs(only.mass.conc.2-mean(only.mass.conc.2))/sd(only.mass.conc.2)))) 
+no_outliers.2 <- z_scores.2 %>% dplyr::filter(z.score < 3) 
+plot.3 <- ggplot(no_outliers.2, aes(x = date.time, y = `ug/m3`, color = Site)) + geom_point(size=0.01) + ylim(c(-1,100))
+plot.3 
+hist(cleaned.2$`ug/m3`, breaks = seq(from=-100, to=150, by=5)) #normal distribution = fair to use z-scores for outlier identification 
+mass.conc <- cleaned.2 %>% dplyr::select(Site,`ug/m3`, Time, Date)
+only.mass.conc <- mass.conc %>% dplyr::select(`ug/m3`)
+z_scores <- mass.conc %>% mutate(z.score = sapply(only.mass.conc, function(only.mass.conc) (abs(only.mass.conc-mean(only.mass.conc))/sd(only.mass.conc)))) 
+no_outliers <- z_scores %>% dplyr::filter(z.score < 3) 
+
+# Collating PM data from both sites due to gaps in data 
+# Demonstrating the correlation between readings at both sites to justify integration of data from each sites
+correlation <- dplyr::select(no_outliers, Date, Site,`ug/m3`)
+correlation.1 <- correlation %>% group_by(Date, Site) %>% summarise_at(vars(c("ug/m3")), ~mean(na.omit(.)))
+correlation.2 <- pivot_wider(correlation.1, names_from = Site, values_from = `ug/m3`) %>% na.omit() %>% dplyr::filter(Date < "2020-07-01")
+correlation.3 <- lm(correlation.2$A ~ correlation.2$B , data = correlation.2)
+summary(correlation.3)
+ggplot(correlation.2, aes(x = A, y = B)) + 
+  geom_point() + 
+  stat_smooth(method = "lm", col = "black")
+# Combining readings from both Sites
+pdr.together <- no_outliers %>% group_by(Date) %>% summarise_at(vars(c("ug/m3")), ~mean(na.omit(.)))
+pdr.together %>% identify_outliers(`ug/m3`) #confirmation of no more outliers
+
+# Adding Chlorophyll a data to visualize alongside PM time series 
+chla <- metadata.with.sd %>% dplyr::select(Site, Date, CHLA_avg, CHLA_sd) %>% mutate(Date = as.Date(Date))
+chla.with.PM <- pdr.together %>% left_join(chla, by = "Date", keep = FALSE)
+chla.with.PM.1 <- chla.with.PM %>% mutate_if(is.numeric, ~replace_na(., NA))
+for.avg <- chla.with.PM.1 %>% select(`ug/m3`) %>% na.omit()
+average.PM <- as.data.frame(rep(mean(for.avg$`ug/m3`), times = 108))
+name <- "avg"
+colnames(average.PM) = name
+chla.with.PM.2 <- cbind(chla.with.PM.1, average.PM) 
+EPA.std <- as.data.frame(12, times = 108)
+name <- "EPA.std"
+colnames(EPA.std) = name
+
+# Assigning Sampling Periods 
+chla.with.PM.4 <- chla.with.PM.3 %>% mutate(Sampling_Period = case_when(
+  Date >= "2020-06-11" & Date < "2020-06-23"~ "S1", 
+  Date >= "2020-06-23" & Date < "2020-07-07"~ "S2", 
+  Date >= "2020-07-07" & Date < "2020-07-21"~ "S3",                        
+  Date >= "2020-07-21" & Date < "2020-08-03"~ "S4",
+  Date >= "2020-08-04" & Date < "2020-08-18"~ "S5",
+  Date >= "2020-08-18" & Date < "2020-09-01"~ "S6",
+  Date >= "2020-09-01" & Date < "2020-09-15"~ "S7",
+  Date >= "2020-09-15" & Date <= "2020-10-01"~ "S8"))
+# plot by sites 
+plot.together <- ggplot(chla.with.PM.4, aes(x = Date)) + 
+  geom_line(size=0.5, aes(y = `ug/m3`), na.rm=F) + 
+  geom_point(size = 3, aes(y=CHLA_avg , color = Site)) + 
+  geom_line(linetype = 3, aes(y=avg)) + 
+  geom_line(linetype = 5, aes(y=EPA.std)) + 
+  theme_minimal() + 
+  scale_color_grey() + 
+  scale_x_date(date_labels="%B") + 
+  scale_y_continuous(sec.axis = sec_axis(trans= ~.*1, name = expression(µg~L^-1~Chlorophyll~a))) +
+  xlab("Date") + ylab(expression(µg~m^-3~PM[2.5])) +
+  theme(plot.title = element_text(face = "bold"), legend.position = "none")
+plot.together 
+# pooling chlorophyll a data from both sites
+both.sites <- metadata.with.sd %>% group_by(Date) %>% dplyr::summarise_at(vars(c("CHLA_avg")), ~mean(na.omit(.))) %>% mutate(Date = as.Date(Date))
+both.sites.1 <- pdr.together %>% left_join(both.sites, by = "Date", keep = FALSE)
+both.sites.2 <- both.sites.1 %>% mutate_if(is.numeric, ~replace_na(., NA))
+for.avg <- chla.with.PM.2 %>% select(`ug/m3`) %>% na.omit()
+average.PM <- as.data.frame(rep(mean(for.avg$`ug/m3`), times = 99))
+name <- "avg"
+colnames(average.PM) = name
+both.sites.3 <- cbind(both.sites.2, average.PM) 
+EPA.std <- as.data.frame(12, times = 99)
+name <- "EPA.std"
+colnames(EPA.std) = name
+both.sites.4 <- cbind(both.sites.3, EPA.std) 
+ggplot(both.sites.4, aes(x = Date)) + 
+  geom_line(size=0.5, aes(y = `ug/m3`), na.rm=F) + 
+  geom_point(size = 3, aes(y=CHLA_avg)) + 
+  geom_line(linetype = 3, aes(y=avg)) + 
+  geom_line(linetype = 5, aes(y=EPA.std)) + 
+  theme_minimal() + 
+  scale_color_grey() + 
+  scale_x_date(date_labels="%B") + 
+  scale_y_continuous(sec.axis = sec_axis(trans= ~.*1, name = expression(µg~L^-1~Chlorophyll~a))) +
+  xlab("Date") + ylab(expression(µg~m^-3~PM[2.5])) +
+  theme(legend.position = "none", plot.title = element_text(face = "bold"))
+#add cyanobacterial relative abundance to this plot? 
+
+# Determining days that exceeded the baseline ambient PM2.5 as a function of bloom conditions 
+average.PM <- mean(both.sites.3$`ug/m3`)
+median.PM <- median(both.sites.3$`ug/m3`)
+pdr.together.1 <- pdr.together %>% mutate(exceeds.baseline = case_when(
+  pdr.together$`ug/m3` >= median.PM ~ "1",
+  pdr.together$`ug/m3` < median.PM ~ "0")) %>% 
+  mutate(exceeds.EPA.standard = case_when(
+    pdr.together$`ug/m3` > 12 ~ "1",
+    pdr.together$`ug/m3` < 12 ~ "0")) %>% 
+  mutate(Bloom = case_when(
+    pdr.together$Date >= "2020-06-23" & pdr.together$Date <= "2020-07-21"~ "Bloom",
+    pdr.together$Date < "2020-06-23" | pdr.together$Date > "2020-07-21"~ "No Bloom"))
+myDate = as.POSIXct(pdr.together.1$Date)
+pdr.together.2 <- pdr.together.1 %>% mutate(month = format(myDate,"%b")) #for some reason it's one off. (the first of every month is classified as the month prior--fix this later to save time)
+table(pdr.together.2$month)
+Jun <- rep("Jun", times = 19)
+Jul <- rep("Jul", times = 28)
+Aug <- rep("Aug", times = 22)
+Sep <- rep("Sep", times = 29)
+Oct <- rep("Oct", times = 1)
+true.months <- c(Jun,Jul,Aug,Sep,Oct)
+pdr.together.3 <- pdr.together.2 %>% mutate(month = true.months)
+
+#Statistical testing to compare the PM2.5 concentrations on bloom vs. non-bloom days.
+pdr.together.test <- pdr.together.3 %>% na.omit()
+pdr.together.test %>% shapiro_test(ug/m3)
+hist(pdr.together.test$`ug/m3`) #not really normal (expected skewed left, due to ), use Wilcoxon Signed Ranks Test, the nonparametric alternative to a T test
+wilcox.test <- wilcox.test(`ug/m3` ~ Bloom, alternative = "greater", data = pdr.together.test)
+wilcox.summary.stats <- pdr.together.test %>% group_by(Bloom) %>% summarise(count = n(), median = median(`ug/m3`), IQR = IQR(`ug/m3`))
+wilcox.test
+wilcox.summary.stats
+ggplot(data = pdr.together.test, aes(x = Bloom, y = `ug/m3`, color=Bloom)) + geom_boxplot() + geom_jitter(aes(color=Bloom, alpha=Bloom)) + theme_bw() + scale_color_manual(values=c("gray", "gray50")) + xlab(" ") + ylab(expression(µg~m^-3~PM[2.5])) + scale_alpha_manual(values=c(1,0.2))
+
+##Univariate Regressions
 # the linear regression function 
 regression.df <- regression.df.0 %>% dplyr::select(-Site, -Sampling_Period) %>% mutate_if(is.integer, as.numeric)
 colnames(regression.df) #need this for copying and pasting strings (column names) 
@@ -906,7 +1130,10 @@ PM.10.s <- linear.regression.plot.by.site(regression.df$PM.avg, regression.df$Wi
 PM.11.s <- linear.regression.plot.by.site(regression.df$PM.avg, regression.df$Water_Cyanobacteria )
 PM.1.s + PM.2.s + PM.3.s + PM.4.s + PM.5.s + PM.6.s + PM.7.s + PM.8.s + PM.9.s
 
-# Examining impacts of Wind Direction
+
+
+
+
 
 
 
