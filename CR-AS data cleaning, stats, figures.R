@@ -151,6 +151,17 @@ water.samples.2 <- rownames_to_column(water.samples.1)
 overlapping.ASVs <- left_join(water.samples.2, PM.samples.2, by = "rowname") %>% na.omit() %>% mutate(ASV = rowname) %>% left_join(ASV.w.taxonomy) %>% select('ASV', 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B","09.15_A", "09.15_B", "10.01_A", "10.01_B", "Kingdom","Phylum", "Class", "Order", "Family", "Genus", "Species", "NA.")
 overlapping.cyanos <- overlapping.ASVs %>% dplyr::filter(Class == "Cyanobacteria")
 
+#Calculating Relative Abundance of each ASV in each Sample
+RA.ASVs.1 <- RA.df %>% summarise_if(is.numeric, ~sum(na.exclude(.)))
+RA.ASVs.2 <- RA.df %>% dplyr::select(S1_A:`10.01_B`)
+RA.ASVs.3 <- as.data.frame(mapply(`/`, RA.ASVs.2, RA.ASVs.1)) #relative abundance of each ASV in percentages 
+RA.df.ASV.order <- RA.df %>% dplyr::select(ASV)
+RA.ASVs.4 <- as.data.frame(cbind(RA.df.ASV.order, RA.ASVs.3)) 
+RA.ASVs.5 <- RA.ASVs.4 %>% dplyr::filter(ASV == "ASV1111" | ASV == "ASV0389"| ASV == "ASV1999"| ASV == "ASV0309"| ASV == "ASV2080"| ASV =="ASV1397"| ASV == "ASV0546"| ASV == "ASV0288"| ASV == "ASV0529"| ASV == "ASV0413"| ASV =="ASV0108"| ASV =="ASV0196"| ASV == "ASV0889"| ASV == "ASV2444"| ASV == "ASV0467") 
+write.csv(RA.ASVs.5, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Water.rAF.sampling.periods.csv")
+water.sampling.periods.ASVs <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Water.rAF.sampling.periods_calculated.csv", header=TRUE)
+RA.ASVs.6 <- water.sampling.periods.ASVs %>% left_join(ASV.w.taxonomy, by = "ASV")
+
 #Estimating water values during aerosol sampling periods rather than at interval points
 write.csv(RA.df, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/to.calculate.water.during.sampling.periods.csv")
 water.sampling.periods <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/water.sampling.period.csv", header=TRUE)
@@ -521,18 +532,52 @@ species.RAs <- species.RA.df.AF %>% group_by(Species, Sampling_Period, Site) %>%
 species.AFs <- species.RAs %>% mutate(`r-AF` = PM/Water) %>% mutate(`log.r-AF` = log(`r-AF`)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% mutate_all(~replace(., is.na(.), 0)) %>% mutate_all(~replace(., is.infinite(.), 0)) 
 
 ## Q1 FOR STATS CONSULTANT
-# the relative aerosolization factor (rAF or r-AF) is the ratio of abundance of each cyanobacteria in air to its abundance in water. This allows us to examine differential species enrichment in spray aerosol. The data has many zeros and is left-skewed. I report the aerosolization factors on average, but for better visualization in the heat-maps, I added 1 and log-transformed. Is this an OK practice? Since it's vizualized this way is it misleading to show the values as non-transformed averages? 
-ASV.RA.df.AF <- pivot_longer(overlapping.cyanos.1, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample")  %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
-ASV.RAs <- ASV.RA.df.AF %>% group_by(ASV, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value) 
-ASV.AF.without.log.transformation <- ASV.RAs %>% mutate(`r-AF` = PM/Water) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% group_by(ASV) %>% dplyr::summarise_at(vars(`r-AF`), ~mean(., na.rm = T)) %>% left_join(ASV.w.taxonomy, by = "ASV") %>% dplyr::select(ASV, `r-AF`, Species)
-ASV.AFs <- ASV.RAs %>% mutate(`r-AF` = (PM)/(Water)) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% mutate(`r-AF`= na_if(`r-AF`, "NA")) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate_at(vars(`r-AF`), ~replace_na(., 0)) %>% mutate(`1+r-AF` = (1+PM)/(1+Water)) %>% mutate(`log.r-AF` = log(`r-AF`)) %>% mutate(`log.1+r-AF` = log(`1+r-AF`)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% filter(ASV != "ASV4107" , ASV != "ASV2139" , ASV != "ASV1848" , ASV != "ASV0986") 
-AF.summary.stats <- ASV.AFs %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
+# the relative aerosolization factor (rAF or r-AF) is the ratio of abundance of each cyanobacteria in air to its abundance in water. This allows us to examine differential species enrichment in spray aerosol. The data has many zeros and is left-skewed. I report the aerosolization factors on average, but for better visualization in the heat-maps, I added 1 and log-transformed. Is this an OK practice? Since it's vizualized this way is it misleading to show the values as non-transformed averages? -- note on 5/11, I think I used the CSS abundances to calculate the original r-AF values, NOT the actual relative abundance percentages. I dont think it made a huge difference in trends but did shift some values. 
+ASV.RA.df.AF.x <- pivot_longer(overlapping.cyanos.1, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample")  %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
+ASV.RAs.x <- ASV.RA.df.AF.x %>% group_by(ASV, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value) 
+rAF.values <- ASV.RAs.x %>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` = (log(1+(PM/Water)))) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`, `log(1+r-AF)`) %>% mutate_at(vars(c(`r-AF`, `log(1+r-AF)`)), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`log(1+r-AF)`= na_if(`log(1+r-AF)`, "Inf")) %>% filter(ASV != "ASV4107" , ASV != "ASV2139" , ASV != "ASV1848" , ASV != "ASV0986") 
+rAF.values.A <- ASV.RAs.x %>% dplyr::filter(str_detect(Site, "A")) %>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` = (log(1+(PM/Water)))) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`, `log(1+r-AF)`) %>% mutate_at(vars(c(`r-AF`, `log(1+r-AF)`)), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`log(1+r-AF)`= na_if(`log(1+r-AF)`, "Inf"))
+rAF.values.B <- ASV.RAs.x %>% dplyr::filter(str_detect(Site, "B"))%>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` = (log(1+(PM/Water)))) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`, `log(1+r-AF)`) %>% mutate_at(vars(c(`r-AF`, `log(1+r-AF)`)), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`log(1+r-AF)`= na_if(`log(1+r-AF)`, "Inf"))
+rAF.matrix <- ASV.RAs.x %>% mutate(`r-AF` = PM/Water) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`) %>% mutate_at(vars(`r-AF`), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% pivot_wider(names_from = Sampling_Period, values_from = `r-AF`)
+AF.summary.stats.1 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join(ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
+AF.summary.stats.2 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "median_iqr") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, median, iqr, Species)
+AF.summary.stats.ASV <- AF.summary.stats.1 %>% left_join(AF.summary.stats.2, by = c("ASV", "variable", "n", "Species"))
+AF.summary.stats.Site <- rAF.values %>% group_by(Site) %>% get_summary_stats(`r-AF`, type = "median_iqr") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, median, iqr, Species)
 
 #various version of heat map using different data transformations to show enrichment in aerosol
-ggplot(ASV.AFs, aes(Sampling_Period, ASV, fill= `r-AF`)) + geom_tile()+ scale_fill_gradientn(colours = c("darkblue", "beige", "darkred"))
-ggplot(ASV.AFs, aes(Sampling_Period, ASV, fill= `log.r-AF`)) + geom_tile()+ scale_fill_gradientn(colours = c("darkblue", "beige", "darkred")) + theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
-ggplot(ASV.AFs, aes(Sampling_Period, ASV, fill= `1+r-AF`)) + geom_tile()+ scale_fill_gradientn(colours = c("darkblue", "beige", "darkred")) + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
-ggplot(ASV.AFs, aes(Sampling_Period, ASV, fill= `log.1+r-AF`)) + geom_tile()+ scale_fill_gradientn(colours = c("darkblue", "beige", "darkred")) + theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
+ggplot(rAF.values, aes(Sampling_Period, ASV, fill= `r-AF`)) + geom_tile()+ scale_fill_gradientn(colours = c("lightcyan3", "beige", "darkred"))+ theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
+ggplot(rAF.values, aes(Sampling_Period, ASV, fill= `log(1+r-AF)`)) + geom_tile()+ scale_fill_gradientn(colours = c("lightcyan3", "beige", "darkred"))+ theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
+
+#testing differences between calculated AFs
+AF.for.stats <- rAF.values %>% separate(Sampling_Period, c("Period", "Site"))
+pairwise.ASV <- pairwise.wilcox.test(AF.for.stats$`r-AF`, AF.for.stats$ASV,
+                                 p.adjust.method = "BH")
+pairwise.ASV
+pairwise.period <- pairwise.wilcox.test(AF.for.stats$`r-AF`, AF.for.stats$Period,
+                                 p.adjust.method = "BH")
+pairwise.period
+pairwise.site <- pairwise.wilcox.test(AF.for.stats$`r-AF`, AF.for.stats$Site,
+                                   p.adjust.method = "BH")
+pairwise.site
+summary.stats.AF.by.Site <- rAF.values %>% separate(Sampling_Period, c("Period", "Site")) %>% group_by(Site) %>% get_summary_stats(`r-AF`, type = "median_iqr") #stratifying by Site
+summary.stats.AF.by.period <- rAF.values %>% separate(Sampling_Period, c("Period", "Site")) %>% group_by(Period) %>% get_summary_stats(`r-AF`, type = "median_iqr") #stratifying by sampling period
+write.csv(AF.summary.stats, "/Users/haleyplaas/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/AF.summary.stats.csv")
+
+#trying this with the ASV relative abundance determined from ALL ASVs
+ASV.RA.df.AF.x <- pivot_longer(RA.ASVs.6, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample")  %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
+ASV.RAs.x <- ASV.RA.df.AF.x %>% group_by(ASV, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value) 
+rAF.values <- ASV.RAs.x %>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` = (log(1+(PM/Water)))) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`, `log(1+r-AF)`) %>% mutate_at(vars(c(`r-AF`, `log(1+r-AF)`)), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`log(1+r-AF)`= na_if(`log(1+r-AF)`, "Inf"))
+rAF.matrix <- ASV.RAs.x %>% mutate(`r-AF` = PM/Water) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`) %>% mutate_at(vars(`r-AF`), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% pivot_wider(names_from = Sampling_Period, values_from = `r-AF`)
+AF.summary.stats.1 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join(ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
+AF.summary.stats.2 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "median_iqr") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, median, iqr, Species)
+AF.summary.stats.A <- AF.summary.stats.1 %>% left_join(AF.summary.stats.2, by = c("ASV", "variable", "n", "Species"))
+AF.summary.stats.1 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`log(1+r-AF)`, type = "mean_sd") %>% left_join(ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
+AF.summary.stats.2 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`log(1+r-AF)`, type = "median_iqr") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, median, iqr, Species)
+AF.summary.stats.B <- AF.summary.stats.1 %>% left_join(AF.summary.stats.2, by = c("ASV", "variable", "n", "Species"))
+
+#various version of heat map using different data transformations to show enrichment in aerosol
+ggplot(rAF.values, aes(Sampling_Period, ASV, fill= `r-AF`)) + geom_tile()+ scale_fill_gradientn(colours = c("lightcyan3", "beige", "darkred"))+ theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
+ggplot(rAF.values, aes(Sampling_Period, ASV, fill= `log(1+r-AF)`)) + geom_tile()+ scale_fill_gradientn(colours = c("lightcyan3", "beige", "darkred"))+ theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
 
 #r-AF values calculated with START TIMES rather than averages
 start.times <- overlapping.cyanos.start.times.ASVs.1 %>% dplyr::rename("W1_A"= "06.11_A", "W1_B" = "06.11_B", "W2_A" = "06.23_A", "W2_B" = "06.23_B", "W3_A" = "07.07_A", "W3_B" = "07.07_B", "W4_A" = "07.21_A", "W4_B" = "07.21_B", "W5_A" = "08.12_A", "W5_B" = "08.12_B", "W6_A" = "08.18_A", "W6_B" = "08.18_B", "W7_A" = "09.01_A", "W7_B" = "09.01_B", "W8_A" = "09.15_A", "W8_B" = "09.15_B")
@@ -541,6 +586,8 @@ ASV.RAs.start <- ASV.RA.df.AF.start %>% group_by(ASV, Sampling_Period, Site) %>%
 ASV.AF.without.log.transformation.start <- ASV.RAs.start %>% mutate(`r-AF` = PM/Water) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% group_by(ASV) %>% dplyr::summarise_at(vars(`r-AF`), ~mean(., na.rm = T)) %>% left_join(ASV.w.taxonomy, by = "ASV") %>% dplyr::select(ASV, `r-AF`, Species)
 ASV.AFs.start <- ASV.RAs.start %>% mutate(`r-AF` = (PM)/(Water)) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% mutate(`r-AF`= na_if(`r-AF`, "NA")) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate_at(vars(`r-AF`), ~replace_na(., 0)) %>% mutate(`1+r-AF` = (1+PM)/(1+Water)) %>% mutate(`log.r-AF` = log(`r-AF`)) %>% mutate(`log.1+r-AF` = log(`1+r-AF`)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% filter(ASV != "ASV4107" , ASV != "ASV2139" , ASV != "ASV1848" , ASV != "ASV0986") 
 AF.summary.stats.start <- ASV.AFs.start %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
+AF.summary.stats.start.nonpara <- ASV.AFs.start %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "median") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, median,  Species)
+
 
 #r-AF with STOP TIMES instead of averages 
 stop.times <- overlapping.cyanos.start.times.ASVs.1 %>% dplyr::rename("W1_A"= "06.23_A", "W1_B" = "06.23_B", "W2_A" = "07.07_A", "W2_B" = "07.07_B", "W3_A" = "07.21_A", "W3_B" = "07.21_B", "W4_A" = "08.12_A", "W4_B" = "08.12_B", "W5_A" = "08.18_A", "W5_B" = "08.18_B", "W6_A" = "09.01_A", "W6_B" = "09.01_B", "W7_A" = "09.15_A", "W7_B" = "09.15_B", "W8_A" = "10.01_A", "W8_B" = "10.01_B")
@@ -580,6 +627,8 @@ kruskal.test(`r-AF` ~ ASV, data = ASV.AFs)
 pairwise <- pairwise.wilcox.test(ASV.AFs$`r-AF`, ASV.AFs$ASV,
                      p.adjust.method = "BH")
 pairwise #none of these yielded were individually 
+
+
 
 # ---------------------------- LOADING IN ALL WATER AND METEOROLOGICAL METADATA FOR REGRESSION ANALYSES ----------------------------------
 # Loading in the water quality metadata
@@ -1143,6 +1192,7 @@ write.csv(significant.predictors.cyanos, "/Users/haleyplaas/OneDrive - Universit
 write.csv(significant.predictors.PM_Dolichospermum_NIES41, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.dolicho.csv")
 write.csv(significant.predictors.PM_Microcystis_PCC7914, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.micro.csv")
 write.csv(significant.predictors.PM.avg, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.csv")
+write.csv(regression.df.0, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/predictor.variables.csv")
 
 #start only
 write.csv(significant.predictors.cyanos, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/start.PM.cyanos.csv")
@@ -1155,3 +1205,58 @@ write.csv(significant.predictors.cyanos, "/Users/haleyplaas/OneDrive - Universit
 write.csv(significant.predictors.PM_Dolichospermum_NIES41, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/stop.PM.dolicho.csv")
 write.csv(significant.predictors.PM_Microcystis_PCC7914, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/stop.PM.micro.csv")
 write.csv(significant.predictors.PM.avg, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/stop.PM.csv")
+
+#NMDS plots 
+ASV.abundances <- ASV.RA.df.AF %>% dplyr::select(Sample_Type, Site, Sampling_Period, ASV, value) 
+ASV.abundances[ASV.abundances == 0] <- NA 
+ASV.abundances <- ASV.abundances %>% mutate_all(~replace(., is.na(.),0.0000001))
+ASV.abundances <- ASV.abundances %>% pivot_wider(names_from = ASV, values_from = value) %>% mutate(Sampling_Period = case_when(Sampling_Period == 1 ~ "S1", Sampling_Period == 2 ~ "S2", Sampling_Period == 3 ~ "S3",Sampling_Period == 4 ~ "S4",Sampling_Period == 5 ~ "S5",Sampling_Period == 6 ~ "S6",Sampling_Period == 7 ~ "S7", Sampling_Period == 8 ~ "S8")) 
+NMDS.df <- ASV.abundances %>% left_join(regression.df.0, by = c("Site", "Sampling_Period")) %>% dplyr::select("Sample_Type", "Site", "Sampling_Period", "ASV0196", "ASV0309", "ASV1397", "ASV2080", "ASV0389", "ASV0467", "ASV0546", "ASV0529",  "ASV0108", "ASV0288", "ASV1999", "ASV1111", "ASV0413", "ASV0889", "ASV2444", "C.to.N_avg", "CHLA_avg","Salinity_avg", "Solar.Rad", "Air.Mass", "Relative.Humidity", "Wind.Speed")
+com <- NMDS.df %>% dplyr::select("ASV0196", "ASV0309", "ASV1397", "ASV2080", "ASV0389", "ASV0467", "ASV0546", "ASV0529",  "ASV0108", "ASV0288", "ASV1999", "ASV1111", "ASV0413", "ASV0889", "ASV2444") 
+env <- NMDS.df %>% dplyr::select("Sample_Type", "C.to.N_avg", "CHLA_avg","Salinity_avg", "Solar.Rad",  "Relative.Humidity")
+m_com <- as.matrix(com)
+set.seed(123)
+nmds <- metaMDS(m_com, distance = "bray", k = 2)
+nmds
+en <- envfit(nmds, env, permutations = 999, na.rm = TRUE)
+en
+ASV.scores <- as.data.frame(scores(nmds, "species"))  
+ASV.scores$ASV <- rownames(ASV.scores)  # create a column of species, from the rownames of species.scores
+head(ASV.scores) 
+data.scores <- as.data.frame(scores(nmds))
+data.scores$Sample_Type <- NMDS.df$Sample_Type
+en_coord_cont = as.data.frame(scores(en, "vectors")) * ordiArrowMul(en)
+en_coord_cat = as.data.frame(scores(en, "factors")) * ordiArrowMul(en)
+
+ggplot(data = data.scores, aes(x = NMDS1, y = NMDS2)) + 
+  geom_text(data=ASV.scores,aes(x=NMDS1,y=NMDS2,label=ASV),  size = 2.5, alpha=0.5)+
+  geom_point(data = data.scores, aes(colour = Sample_Type), size = 3, alpha = 0.5) + 
+  scale_colour_manual(values = c("darkred", "lightcyan3")) + 
+  theme(axis.title = element_text(size = 10, face = "bold", colour = "grey30"), 
+        panel.background = element_blank(), panel.border = element_rect(fill = NA, colour = "grey30"), 
+        axis.ticks = element_blank(), axis.text = element_blank(), legend.key = element_blank(), 
+        legend.title = element_text(size = 10, face = "bold", colour = "grey30"), 
+        legend.text = element_text(size = 9, colour = "grey30")) +
+  labs(colour = "Sample_Type") 
+
+ggplot(data = data.scores, aes(x = NMDS1, y = NMDS2)) + 
+  geom_point(data = data.scores, aes(colour = Sample_Type), size = 3, alpha = 0.5)  +
+  scale_colour_manual(values = c("darkred", "lightcyan4"))  +
+  geom_segment(aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2), 
+               data = en_coord_cont, size =1, alpha = 0.5, colour = "grey30") +
+  geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2), colour = "grey30", 
+            fontface = "bold", label = row.names(en_coord_cont)) + 
+  theme(axis.title = element_text(size = 10, face = "bold", colour = "grey30"), 
+        panel.background = element_blank(), panel.border = element_rect(fill = NA, colour = "grey30"), 
+        axis.ticks = element_blank(), axis.text = element_blank(), legend.key = element_blank(), 
+        legend.title = element_text(size = 10, face = "bold", colour = "grey30"), 
+        legend.text = element_text(size = 9, colour = "grey30")) + 
+  labs(colour = "Sample_Type") + 
+  geom_segment(aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2), 
+               data = en_coord_cat, size =1, alpha = 0.5, colour = "grey30") +
+  geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), colour = "grey30", 
+            fontface = "bold", label = row.names(en_coord_cat)) 
+
+
+
+
