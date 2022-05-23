@@ -68,7 +68,7 @@ decontam.qff.contaminants <- contaminants.on.QFF %>% left_join(ASV.w.taxonomy, b
 QFF.ASVs.to.remove <- contaminants.on.QFF %>% select("ASV")
 write.csv(decontam.qff.contaminants, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/extraction.blank.QFF.contaminants.csv")
 
-# WATER 
+# WATER SAMPLES
 H2O.with.all <- water %>% mutate_if(is.numeric, ~replace_na(., 0))
 # Water phyloseq object 
 # SEQUENCES
@@ -127,7 +127,7 @@ both.sample.types.ps <- phyloseq(seq.tab, meta.tab, taxa.tab)
 phylo.tree <- rtree(ntaxa(both.sample.types.ps), rooted=TRUE, tip.label=taxa_names(both.sample.types.ps))
 phyloseq.ob <- phyloseq(seq.tab, meta.tab, taxa.tab, phylo.tree)
 
-#Showing sequencing depths
+#Vizualizing Sequencing Depths
 sequence.depths <- data.table(as(sample_data(phyloseq.ob), "data.frame"),
                       TotalReads = sample_sums(phyloseq.ob), keep.rownames = TRUE)
 setnames(sequence.depths, "rn", "SampleID")
@@ -171,8 +171,7 @@ overlapping.cyanos.ASVs <- overlapping.cyanos %>% dplyr::select(ASV)
 overlapping.cyanos.ASVs <- overlapping.cyanos.ASVs %>% left_join(RA.df.SPs, by = "ASV") %>% dplyr::select("ASV", "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
 overlapping.cyanos.1 <- overlapping.cyanos %>% left_join(overlapping.cyanos.ASVs) %>% select("ASV", 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
 
-## SUGGESTION FROM COMMITEE -- RE-RUN ALL ANALYSES ONLY THE START TIME WATER SAMPLES AND THE END TIME WATER SAMPLES RATHER THAN AN AVERAGE TO SEE IF TRENDS / FINDINGS ARE MAJORLY DIFFERENT 
-#using interval start and stop time samples rather than averages for water conditions
+#Using interval start and stop time samples rather than averages for water conditions
 overlapping.cyanos.start.times <- RA.df.0 %>% dplyr::select("ASV", 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B',"06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
 overlapping.cyanos.start.times.ASVs <- overlapping.cyanos.ASVs %>% left_join(overlapping.cyanos.start.times, by = "ASV") %>% dplyr::select("ASV", "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
 overlapping.cyanos.start.times.ASVs.1 <- overlapping.cyanos %>% left_join(overlapping.cyanos.ASVs) %>% select("ASV", 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
@@ -522,17 +521,7 @@ ordination <- ordinate(phyloseq.ob, method="PCoA", distance=wunifrac_dist)
 plot_ordination(phyloseq.ob, ordination, color="Sample_Type") + theme(aspect.ratio=1)
 
 #-----------------------------------------------------------------------------------------------------------------------------------------#
-# Calculating aerosolization factors (AF) for all classes of bacteria and species of cyanobacteria
-RA.df.AF <- pivot_longer(RA.df.6, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample) 
-class.RAs <- RA.df.AF %>% group_by(Class, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value)  
-class.AFs <- class.RAs %>% mutate(`r-AF` = PM/Water) %>% mutate(`log.r-AF` = log(`r-AF`)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% mutate(`log.r-AF` = log(`r-AF`)) %>% mutate_all(~replace(., is.na(.), 0)) %>% mutate_all(~replace(., is.infinite(.), 0)) 
-
-species.RA.df.AF <- pivot_longer(species.RA.df.6, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
-species.RAs <- species.RA.df.AF %>% group_by(Species, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value)
-species.AFs <- species.RAs %>% mutate(`r-AF` = PM/Water) %>% mutate(`log.r-AF` = log(`r-AF`)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% mutate_all(~replace(., is.na(.), 0)) %>% mutate_all(~replace(., is.infinite(.), 0)) 
-
-## Q1 FOR STATS CONSULTANT
-# the relative aerosolization factor (rAF or r-AF) is the ratio of abundance of each cyanobacteria in air to its abundance in water. This allows us to examine differential species enrichment in spray aerosol. The data has many zeros and is left-skewed. I report the aerosolization factors on average, but for better visualization in the heat-maps, I added 1 and log-transformed. Is this an OK practice? Since it's vizualized this way is it misleading to show the values as non-transformed averages? -- note on 5/11, I think I used the CSS abundances to calculate the original r-AF values, NOT the actual relative abundance percentages. I dont think it made a huge difference in trends but did shift some values. 
+# Calculating aerosolization factors (AF) for cyanobacterial ASVs found in aerosol and water
 ASV.RA.df.AF.x <- pivot_longer(overlapping.cyanos.1, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample")  %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
 ASV.RAs.x <- ASV.RA.df.AF.x %>% group_by(ASV, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value) 
 rAF.values <- ASV.RAs.x %>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` = (log(1+(PM/Water)))) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`, `log(1+r-AF)`) %>% mutate_at(vars(c(`r-AF`, `log(1+r-AF)`)), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`log(1+r-AF)`= na_if(`log(1+r-AF)`, "Inf")) %>% filter(ASV != "ASV4107" , ASV != "ASV2139" , ASV != "ASV1848" , ASV != "ASV0986") 
@@ -563,23 +552,7 @@ summary.stats.AF.by.Site <- rAF.values %>% separate(Sampling_Period, c("Period",
 summary.stats.AF.by.period <- rAF.values %>% separate(Sampling_Period, c("Period", "Site")) %>% group_by(Period) %>% get_summary_stats(`r-AF`, type = "median_iqr") #stratifying by sampling period
 write.csv(AF.summary.stats, "/Users/haleyplaas/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/AF.summary.stats.csv")
 
-#trying this with the ASV relative abundance determined from ALL ASVs
-ASV.RA.df.AF.x <- pivot_longer(RA.ASVs.6, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample")  %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
-ASV.RAs.x <- ASV.RA.df.AF.x %>% group_by(ASV, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value) 
-rAF.values <- ASV.RAs.x %>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` = (log(1+(PM/Water)))) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`, `log(1+r-AF)`) %>% mutate_at(vars(c(`r-AF`, `log(1+r-AF)`)), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`log(1+r-AF)`= na_if(`log(1+r-AF)`, "Inf"))
-rAF.matrix <- ASV.RAs.x %>% mutate(`r-AF` = PM/Water) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`) %>% mutate_at(vars(`r-AF`), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% pivot_wider(names_from = Sampling_Period, values_from = `r-AF`)
-AF.summary.stats.1 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join(ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
-AF.summary.stats.2 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "median_iqr") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, median, iqr, Species)
-AF.summary.stats.A <- AF.summary.stats.1 %>% left_join(AF.summary.stats.2, by = c("ASV", "variable", "n", "Species"))
-AF.summary.stats.1 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`log(1+r-AF)`, type = "mean_sd") %>% left_join(ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
-AF.summary.stats.2 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`log(1+r-AF)`, type = "median_iqr") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, median, iqr, Species)
-AF.summary.stats.B <- AF.summary.stats.1 %>% left_join(AF.summary.stats.2, by = c("ASV", "variable", "n", "Species"))
-
-#various version of heat map using different data transformations to show enrichment in aerosol
-ggplot(rAF.values, aes(Sampling_Period, ASV, fill= `r-AF`)) + geom_tile()+ scale_fill_gradientn(colours = c("lightcyan3", "beige", "darkred"))+ theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
-ggplot(rAF.values, aes(Sampling_Period, ASV, fill= `log(1+r-AF)`)) + geom_tile()+ scale_fill_gradientn(colours = c("lightcyan3", "beige", "darkred"))+ theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
-
-#r-AF values calculated with START TIMES rather than averages
+#AF values calculated with START TIMES rather than averages
 start.times <- overlapping.cyanos.start.times.ASVs.1 %>% dplyr::rename("W1_A"= "06.11_A", "W1_B" = "06.11_B", "W2_A" = "06.23_A", "W2_B" = "06.23_B", "W3_A" = "07.07_A", "W3_B" = "07.07_B", "W4_A" = "07.21_A", "W4_B" = "07.21_B", "W5_A" = "08.12_A", "W5_B" = "08.12_B", "W6_A" = "08.18_A", "W6_B" = "08.18_B", "W7_A" = "09.01_A", "W7_B" = "09.01_B", "W8_A" = "09.15_A", "W8_B" = "09.15_B")
 ASV.RA.df.AF.start <- pivot_longer(start.times, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample")  %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
 ASV.RAs.start <- ASV.RA.df.AF.start %>% group_by(ASV, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value) 
@@ -588,47 +561,13 @@ ASV.AFs.start <- ASV.RAs.start %>% mutate(`r-AF` = (PM)/(Water)) %>% mutate(`r-A
 AF.summary.stats.start <- ASV.AFs.start %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
 AF.summary.stats.start.nonpara <- ASV.AFs.start %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "median") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, median,  Species)
 
-
-#r-AF with STOP TIMES instead of averages 
+#AF with STOP TIMES instead of averages 
 stop.times <- overlapping.cyanos.start.times.ASVs.1 %>% dplyr::rename("W1_A"= "06.23_A", "W1_B" = "06.23_B", "W2_A" = "07.07_A", "W2_B" = "07.07_B", "W3_A" = "07.21_A", "W3_B" = "07.21_B", "W4_A" = "08.12_A", "W4_B" = "08.12_B", "W5_A" = "08.18_A", "W5_B" = "08.18_B", "W6_A" = "09.01_A", "W6_B" = "09.01_B", "W7_A" = "09.15_A", "W7_B" = "09.15_B", "W8_A" = "10.01_A", "W8_B" = "10.01_B")
 ASV.RA.df.AF.stop <- pivot_longer(stop.times, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample")  %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
 ASV.RAs.stop <- ASV.RA.df.AF.stop %>% group_by(ASV, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value) 
 ASV.AF.without.log.transformation.stop <- ASV.RAs.stop %>% mutate(`r-AF` = PM/Water) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% group_by(ASV) %>% dplyr::summarise_at(vars(`r-AF`), ~mean(., na.rm = T)) %>% left_join(ASV.w.taxonomy, by = "ASV") %>% dplyr::select(ASV, `r-AF`, Species)
 ASV.AFs.stop <- ASV.RAs.stop %>% mutate(`r-AF` = (PM)/(Water)) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% mutate(`r-AF`= na_if(`r-AF`, "NA")) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate_at(vars(`r-AF`), ~replace_na(., 0)) %>% mutate(`1+r-AF` = (1+PM)/(1+Water)) %>% mutate(`log.r-AF` = log(`r-AF`)) %>% mutate(`log.1+r-AF` = log(`1+r-AF`)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% filter(ASV != "ASV4107" , ASV != "ASV2139" , ASV != "ASV1848" , ASV != "ASV0986") 
 AF.summary.stats.stop <- ASV.AFs.stop %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
-
-## Q2 TO DISCUSS WITH STATS CONSULTANT
-# To assess whether the different calculated r-AF values are statistically significant on average between species, I wanted to run some sort of variance testing, but then found that my data were too left skewed for ANOVA. So I alternatively chose to run a Kruskal-Wallis test and paired-Wilcox test. (based off googling)
-# 1. I found that I have a couple outliers on single days. Some of which are extreme, but I don't have any explanation as to why I should throw them out, so I decided to keep them in is this OK? 
-# 2. I don't understand why my Kruskal-Wallis test resulted in a difference between ASVs, but the pairwise test didn't show any two specific ASVS which had statistically significant different aerosolization factors
-
-#ANOVA assessing difference between average r-AF values 
-library(tidyverse);library(ggpubr);library(rstatix)
-#quick summary stats and one way ANOVA
-AF.summary.stats <- ASV.AFs %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
-write.csv(AF.summary.stats, "/Users/haleyplaas/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/r-AF.summary.stats.csv")
-ggboxplot(ASV.AFs, x = "ASV", y = "r-AF")
-outliers <- ASV.AFs %>% group_by(ASV) %>% identify_outliers(`r-AF`)
-#removing outliers from dataset 
-ASV.AFs.1 <- anti_join(ASV.AFs, outliers, by = "r-AF")
-model <- lm(`r-AF` ~ ASV, data = ASV.AFs)
-ggqqplot(residuals(model))
-shapiro_test(residuals(model))
-#data is non-normal, pivoting to Kruskal Wallis test 
-AF.summary.stats <- ASV.AFs %>% group_by(ASV) %>% summarise(
-  count = n(),
-  mean = mean(`r-AF`, na.rm = TRUE),
-  sd = sd(`r-AF`, na.rm = TRUE),
-  median = median(`r-AF`, na.rm = TRUE),
-  IQR = IQR(`r-AF`, na.rm = TRUE))
-AF.summary.stats
-write.csv(AF.summary.stats, "/Users/haleyplaas/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/r-AF.summary.stats.csv")
-kruskal.test(`r-AF` ~ ASV, data = ASV.AFs)
-pairwise <- pairwise.wilcox.test(ASV.AFs$`r-AF`, ASV.AFs$ASV,
-                     p.adjust.method = "BH")
-pairwise #none of these yielded were individually 
-
-
 
 # ---------------------------- LOADING IN ALL WATER AND METEOROLOGICAL METADATA FOR REGRESSION ANALYSES ----------------------------------
 # Loading in the water quality metadata
@@ -671,7 +610,7 @@ Sampling_Period_water_metadata.with.sd <- read.csv("/Users/haleyplaas/OneDrive -
 Sampling_Period_water_metadata <- Sampling_Period_water_metadata.with.sd %>% select(1:29)
 
 # loading in the atmosphere metadata
-# Karsten's cleaned Met station data for wind vectors
+# cleaned Met station data for wind vectors
 wind.data <- read.csv("/Users/haleyplaas/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/DaytimeMsmts_kb.csv", header = TRUE, na.strings = c(""," ", ".", "NA", "NaN", "NAN")) 
 wind.data.1 <- separate(wind.data, col = Date_Time, into = c("Date", "Time"), sep = " ", remove = T)
 wind.data.2 <- wind.data.1 %>% mutate(NS.vec = WS*cos(WD)) %>% mutate(EW.vec = WS*sin(WD)) %>% mutate(Date = as.Date(Date,"%m/%d/%y"))
@@ -795,9 +734,6 @@ all.pdr.data <- all.pdr.data %>% dplyr::mutate(Site = as.character(Site), `ug/m3
 all.pdr.data.1 <- all.pdr.data %>% mutate(Time.1 = as.numeric(gsub("[[:punct:]]", "", Time)))
 daytime <- all.pdr.data.1 %>% dplyr::filter(Time.1 > 70000 & Time.1 < 190000) 
 
-## Q3. TO DISCUSS WITH STATS CONSULTANT. When is is appropriate to remove outlier readings or entire days that are outliers from a continous dataset? 
-# Here, I removed entire days when we had known instances where the readings were extremely high or faulty (found to be extreme outliers), but I only have concrete reasoning for Fourth of July, and 7-11 through 7-20 when readings went beserk and then we found a spider blocking the sensor, and then other days that were found to be "extreme" outliers using the identify_outliers() function.  
-
 # 2. removal of days with known external sources of PM (e.g. fireworks, military activity, spider found in equipment)
 cleaned <- daytime %>% dplyr::filter(Date != "2020-07-04", Date != "2020-07-05", Date != "2020-07-06", Date != "2020-06-28", Date != "2020-09-03") 
 to.remove <- cleaned %>% dplyr::filter(Site == "B" & Date == "2020-07-11" |
@@ -811,9 +747,6 @@ to.remove <- cleaned %>% dplyr::filter(Site == "B" & Date == "2020-07-11" |
                                          Site == "B" & Date == "2020-07-19"|
                                          Site == "B" & Date == "2020-07-20")
 cleaned.2 <- anti_join(cleaned, to.remove)
-
-## Q4. TO DISCUSS WITH STATS CONSULTANT
-# Here, I removed single readings which were found to be outliers based on calculations of z-scores. Is this OK considering the spread of the data? I plotted the data to observe a normally distribution in order for this, band they were only slightly left skewed, so is there a better way to identify outliers? I note that I am also inconsistent with use of z-scores and the identify_outliers() function because of pasting random code from the internet in attempt to ID outlier data...   
 
 # 3. Outliers calculated and removed via z-scores (z > 3)
 all.pdr.data.2 <- daytime %>% mutate(date.time = as.POSIXct(paste(Date, Time), format="%Y-%m-%d %H:%M:%S"))
@@ -845,7 +778,6 @@ pdr.together %>% identify_outliers(`ug/m3`) #confirmation of no more outliers
 pdr.dates <- as.data.frame(seq(as.Date("2020-06-11"), as.Date("2020-10-01"), by="days"))
 name <- "Date"
 colnames(pdr.dates) = name
-# need to write code here to fix gaps in data on the figure which shows the time series for PM2.5 (for right now I just modified the graph in powerpoint post-plotting and export from R)
 
 # Adding Chlorophyll a and cyanobacterial relative abundance data to visualize alongside PM time series 
 Date <- c("2020-06-17", "2020-06-30", "2020-06-30", "2020-07-14","2020-07-14","2020-07-28","2020-07-28","2020-08-15","2020-08-15","2020-08-25","2020-09-08","2020-09-08","2020-09-22","2020-09-22") 
@@ -926,9 +858,6 @@ Oct <- rep("Oct", times = 1)
 true.months <- c(Jun,Jul,Aug,Sep,Oct)
 pdr.together.3 <- pdr.together.2 %>% mutate(month = true.months)
 
-## TO DISCUSS WITH STATS CONSULTANT
-# Q5. Here I used a Wilcoxon test to determine whether bloom vs. non-bloom PM2.5 data were different, but I want to make sure I did this correctly.
-
 # Statistical testing to compare the PM2.5 concentrations on bloom vs. non-bloom days.
 pdr.together.test <- pdr.together.3 %>% na.omit()
 pdr.together.test %>% shapiro_test(ug/m3)
@@ -939,7 +868,7 @@ wilcox.test
 wilcox.summary.stats
 ggplot(data = pdr.together.test, aes(x = Bloom, y = `ug/m3`, color=Bloom)) + geom_boxplot() + geom_jitter(aes(color=Bloom, alpha=Bloom)) + theme_bw() + scale_color_manual(values=c("gray50", "gray")) + xlab(" ") + ylab(expression(µg~m^-3~PM[2.5])) + scale_alpha_manual(values=c(1,0.4))
 
-## ------------------------------- Univariate Regressions to examine environmental drivers of aquatic Cyanobacteria in PM -----------------------
+## ------------------------------- Univariate Regressions to examine environmental drivers of aquatic Cyanobacteria in PM ----------------------
 # linear regressions
 regression.df <- regression.df.0 %>% dplyr::select(-Site, -Sampling_Period) %>% mutate_if(is.integer, as.numeric)
 colnames(regression.df) #need this for copying and pasting strings (column names) 
@@ -964,8 +893,6 @@ start.regression.df.0 <- start.time.metadata %>% dplyr::left_join(relative.abund
 stop.time.metadata <- metadata.stop.date %>% dplyr::left_join(met.station.data.2, by = c("Site", "Sampling_Period"), keep = F) %>% left_join(wind.data.avg.Sampling.Period.1, by = c("Site", "Sampling_Period"), keep = F) %>% tidyr::drop_na(Sampling_Period)
 stop.regression.df.0 <- stop.time.metadata %>% dplyr::left_join(relative.abundances.1, by = c("Site", "Sampling_Period"))
 #regression.df <- stop.regression.df.0 %>% dplyr::select(-Site, -Sampling_Period) %>% mutate_if(is.integer, as.numeric) #only run this when using stop times
-
-## Q6. TO DISCUSS WITH STATS CONSULTANT WHAT ARE THE MOST IMPORTANT VARIABLES TO SHOW FROM A LINEAR REGRESSION OUTPUT AND WHY? I chose adjusted R^2, sigma, F statistic, p value, AIC, and df residuals. Chose univariate regressions due to lack of data points (not enough power for multivariate? right?), plus only interested in association between variables, not using it to predict outcomes. 
 
 # Outcome Variable: Cyanobacteria in PM
 regression.df  <- regression.df %>% select(PM_Cyanobacteria, everything()) #reordering df for for loop
@@ -1186,7 +1113,7 @@ PM.10.s <- linear.regression.plot.by.site(regression.df$PM.avg, regression.df$Wi
 PM.11.s <- linear.regression.plot.by.site(regression.df$PM.avg, regression.df$Water_Cyanobacteria )
 PM.1.s + PM.2.s + PM.3.s + PM.4.s + PM.5.s + PM.6.s + PM.7.s + PM.8.s + PM.9.s
 
-#showing committee results from using water values as averages between two dates, then only start and only stop dates WRT aerosol sampling
+#showing results from using water values as averages between two dates, then only start and only stop dates WRT aerosol sampling
 #Exporting Statistically Significant Environmental Drivers from each aerosol linear regression model series of interest
 write.csv(significant.predictors.cyanos, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.cyanos.csv")
 write.csv(significant.predictors.PM_Dolichospermum_NIES41, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.dolicho.csv")
