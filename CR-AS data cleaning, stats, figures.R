@@ -1,16 +1,19 @@
 #CR-AS data cleaning, stats, and figures for manuscript
 # *** NOTE WHEN RE-RUNNING CODE NEED TO TAKE # OFF OF LINES 492 & 494 -> PUT IN PLACE SO THEY ARE NOT RE-RUN MID SCRIPT ***
 rm(list=ls()) #clear environment
-setwd("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs") #set working directory 
-#install all necessary packages
-library(dplyr); library(tidyr); library(ggplot2); library(gam); library(gamm4); library(cowplot); library(mgcv); library(reshape2); library(MuMIn); library(stringr); library(ISLR); library(voxel); library(gridExtra); library(purrr); library(data.table); library(phyloseq); library(decontam); library(RAM); library(tidyverse); library(DESeq2); library(microbiome); library(vegan); library(viridis); library(patchwork); library(gapminder); library(tidyverse); library(ape); library(RColorBrewer); library(ggpubr);library(rstatix)
+setwd("C:/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/CR-AS_2020") #set working directory 
+#load necessary packages
+BiocManager::install("metagenomeSeq")
+install.packages("metagenomeSeq")
+library(dplyr); library(tidyr); library(ggplot2); library(gam); library(gamm4);library(cowplot);library(mgcv); library(reshape2); library(MuMIn); library(stringr); library(ISLR); library(voxel); library(gridExtra);library(purrr); library(data.table); library(phyloseq); library(decontam); library(tidyverse); library(DESeq2); library(microbiome); library(vegan); library(viridis); library(patchwork); library(gapminder); library(tidyverse); library(ape); library(RColorBrewer); library(ggpubr);library(rstatix);library(gplots);library(plyr);library(scales);library(labdsv);library(grid);library(gridExtra);library(ggmap);library(permute);library(VennDiagram);library(data.table);library(FD);library(MASS);library(RgoogleMaps);library(lattice);library(reshape);library(ade4);library(phytools);library(utils);library(graphics);library(grDevices)
+library(metagenomeSeq)
 
 #Reading in the dada2 datasets 
 aerosol <- read.csv("Aerosol_16S_counts.csv", header = TRUE, na.strings = c(""," ", ".", "NA"))
 names(aerosol)<-sapply(str_remove_all(colnames(aerosol),"AERO_"),"[")
 water <- read.csv("Water_16S_counts.csv", header = TRUE, na.strings = c(""," ", ".", "NA"))  
 names(water)<-sapply(str_remove_all(colnames(water),"W_"),"[")
-ASV.w.taxonomy <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/PhyloseqReadyFiles/Taxonomy_Table.csv", header=TRUE)
+ASV.w.taxonomy <- read.csv("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/PhyloseqReadyFiles/Taxonomy_Table.csv", header=TRUE)
 #inputting ASVs of interest species assignments from BLASTn search 
 ASV.w.taxonomy$Species[0196]="Leptolyngbya"
 ASV.w.taxonomy$Species[0389]="Anabaena"
@@ -19,16 +22,16 @@ ASV.w.taxonomy$Species[1999]="Anabaena"
 
 #Removing the top ASVs found in the field blanks entirely from PM analysis:
 # AEROSOL
-all.ASVs <- aerosol %>% select(ASV)
+all.ASVs <- aerosol %>% dplyr::select(ASV)
 FB.taxa.removed.from.matrix <- aerosol %>% filter(BLANK == 0)
 #PM.with.all <- aerosol %>% anti_join(removal, by = "ASV") %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% dplyr::select(-BLANK_1, -BLANK_2) #using average sequence depth
-clean.ASVs <- FB.taxa.removed.from.matrix %>% select(ASV) 
+clean.ASVs <- FB.taxa.removed.from.matrix %>% dplyr::select(ASV) 
 clean.PM <- clean.ASVs %>% left_join(aerosol, by = "ASV") %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% dplyr::select(-BLANK) #removing all altogether
 PM.with.all <- all.ASVs %>% left_join(clean.PM, by = "ASV") %>% mutate_if(is.numeric, ~replace_na(., 0))
 # PM.with.all <- all.ASVs %>% left_join(FB.removed, by = "ASV") %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% dplyr::select(-BLANK_1, -BLANK_2) #seeing taxonomy
 colnames(PM.with.all) <- c('ASV', 'QFF_Blank','S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B')
 taxa.on.field.blank <- ASV.w.taxonomy %>% anti_join(FB.taxa.removed.from.matrix, by = "ASV")
-write.csv(taxa.on.field.blank, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/fieldblankQFF.contaminants.csv")
+write.csv(taxa.on.field.blank, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/fieldblankQFF.contaminants.csv")
 
 # PM phyloseq object 
 # SEQUENCES
@@ -36,11 +39,11 @@ PM.with.all.mat <- PM.with.all %>% column_to_rownames("ASV") %>% data.matrix(PM.
 sapply(PM.with.all.mat, as.numeric) # data matrix with sequence reads
 seq.tab.PM <- otu_table(PM.with.all.mat, taxa_are_rows=TRUE)
 # TAXONOMY
-taxa_matrix <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/PhyloseqReadyFiles/Taxonomy_Table.csv", row.names=1, header=TRUE)
+taxa_matrix <- read.csv("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/PhyloseqReadyFiles/Taxonomy_Table.csv", row.names=1, header=TRUE)
 taxa_matrix.1 <- as.matrix(taxa_matrix) # matrix assigning taxonomy to ASVs
 taxa.tab <- tax_table(taxa_matrix.1) 
 # METADATA
-metadata <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/PhyloseqReadyFiles/both.sample.types_metadata.csv", row.names = 1, header = TRUE)
+metadata <- read.csv("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/PhyloseqReadyFiles/both.sample.types_metadata.csv", row.names = 1, header = TRUE)
 metadata.PM <- metadata %>% filter(Sample_Type == "PM")
 meta.tab.PM <- sample_data(metadata.PM)
 # pre-decontam PM phyloseq object
@@ -65,8 +68,8 @@ phyloseq.ob.no.contam.PM <- prune_taxa(!contamdf.freq.PM$contaminant, phyloseq.o
 phyloseq.ob.no.contam.PM
 contaminants.on.QFF <- filter(contamdf.freq.PM, contaminant == TRUE) %>% rownames_to_column("ASV")
 decontam.qff.contaminants <- contaminants.on.QFF %>% left_join(ASV.w.taxonomy, by = "ASV")
-QFF.ASVs.to.remove <- contaminants.on.QFF %>% select("ASV")
-write.csv(decontam.qff.contaminants, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/extraction.blank.QFF.contaminants.csv")
+QFF.ASVs.to.remove <- contaminants.on.QFF %>% dplyr::select("ASV")
+write.csv(decontam.qff.contaminants, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/extraction.blank.QFF.contaminants.csv")
 
 # WATER SAMPLES
 H2O.with.all <- water %>% mutate_if(is.numeric, ~replace_na(., 0))
@@ -100,13 +103,13 @@ phyloseq.ob.no.contam.H2O <- prune_taxa(!contamdf.freq.H2O$contaminant, phyloseq
 phyloseq.ob.no.contam.H2O
 contaminants.on.Supor <- filter(contamdf.freq.H2O, contaminant == TRUE) %>% rownames_to_column("ASV") 
 decontam.Supor <- contaminants.on.Supor %>% left_join(ASV.w.taxonomy, by = "ASV")
-Supor.ASVs.to.remove <- decontam.Supor %>% select("ASV")
-write.csv(decontam.Supor, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/extractionSupor.contaminants.csv")
+Supor.ASVs.to.remove <- decontam.Supor %>% dplyr::select("ASV")
+write.csv(decontam.Supor, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/extractionSupor.contaminants.csv")
 
 # COMBINED SAMPLE TYPES 
-H2O.with.all.1 <- H2O.with.all %>% select(ASV:`10.01_B`, -Supor_Blank)
+H2O.with.all.1 <- H2O.with.all %>% dplyr::select(ASV:`10.01_B`, -Supor_Blank)
 H2O.with.all.2 <- H2O.with.all.1 %>% anti_join(Supor.ASVs.to.remove, by = "ASV")
-PM.with.all.1 <- PM.with.all %>% select(ASV:`S8_B`, -QFF_Blank)
+PM.with.all.1 <- PM.with.all %>% dplyr::select(ASV:`S8_B`, -QFF_Blank)
 PM.with.all.2 <- PM.with.all.1 %>% anti_join(QFF.ASVs.to.remove, by = "ASV")
 both.sample.types <- H2O.with.all.2 %>% left_join(PM.with.all.2, by = c("ASV"), keep = FALSE)
 seq.taxa.combined <- both.sample.types %>% left_join(ASV.w.taxonomy, by = "ASV", keep = FALSE) %>% column_to_rownames("ASV") 
@@ -124,7 +127,7 @@ metadata.both <- metadata %>% filter(Sample_or_Control == "SAMPLE")
 meta.tab <- sample_data(metadata.both)
 # Final Phyloseq object
 both.sample.types.ps <- phyloseq(seq.tab, meta.tab, taxa.tab)
-phylo.tree <- rtree(ntaxa(both.sample.types.ps), rooted=TRUE, tip.label=taxa_names(both.sample.types.ps))
+phylo.tree <- ape::rtree(ntaxa(both.sample.types.ps), rooted=TRUE, tip.label=taxa_names(both.sample.types.ps))
 phyloseq.ob <- phyloseq(seq.tab, meta.tab, taxa.tab, phylo.tree)
 
 #Vizualizing Sequencing Depths
@@ -148,7 +151,7 @@ PM.samples.2 <- rownames_to_column(PM.samples.1)
 water.samples <- RA.df %>% dplyr::select('ASV', "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B","09.15_A", "09.15_B", "10.01_A", "10.01_B") %>% column_to_rownames("ASV")
 water.samples.1 <- water.samples[rowSums(water.samples[])>0,]
 water.samples.2 <- rownames_to_column(water.samples.1) 
-overlapping.ASVs <- left_join(water.samples.2, PM.samples.2, by = "rowname") %>% na.omit() %>% mutate(ASV = rowname) %>% left_join(ASV.w.taxonomy) %>% select('ASV', 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B","09.15_A", "09.15_B", "10.01_A", "10.01_B", "Kingdom","Phylum", "Class", "Order", "Family", "Genus", "Species", "NA.")
+overlapping.ASVs <- left_join(water.samples.2, PM.samples.2, by = "rowname") %>% na.omit() %>% mutate(ASV = rowname) %>% left_join(ASV.w.taxonomy) %>% dplyr::select('ASV', 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B","09.15_A", "09.15_B", "10.01_A", "10.01_B", "Kingdom","Phylum", "Class", "Order", "Family", "Genus", "Species", "NA.")
 overlapping.cyanos <- overlapping.ASVs %>% dplyr::filter(Class == "Cyanobacteria")
 
 #Calculating Relative Abundance of each ASV in each Sample
@@ -158,23 +161,23 @@ RA.ASVs.3 <- as.data.frame(mapply(`/`, RA.ASVs.2, RA.ASVs.1)) #relative abundanc
 RA.df.ASV.order <- RA.df %>% dplyr::select(ASV)
 RA.ASVs.4 <- as.data.frame(cbind(RA.df.ASV.order, RA.ASVs.3)) 
 RA.ASVs.5 <- RA.ASVs.4 %>% dplyr::filter(ASV == "ASV1111" | ASV == "ASV0389"| ASV == "ASV1999"| ASV == "ASV0309"| ASV == "ASV2080"| ASV =="ASV1397"| ASV == "ASV0546"| ASV == "ASV0288"| ASV == "ASV0529"| ASV == "ASV0413"| ASV =="ASV0108"| ASV =="ASV0196"| ASV == "ASV0889"| ASV == "ASV2444"| ASV == "ASV0467") 
-write.csv(RA.ASVs.5, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Water.rAF.sampling.periods.csv")
-water.sampling.periods.ASVs <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Water.rAF.sampling.periods_calculated.csv", header=TRUE)
+write.csv(RA.ASVs.5, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Water.rAF.sampling.periods.csv")
+water.sampling.periods.ASVs <- read.csv("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Water.rAF.sampling.periods_calculated.csv", header=TRUE)
 RA.ASVs.6 <- water.sampling.periods.ASVs %>% left_join(ASV.w.taxonomy, by = "ASV")
 
 #Estimating water values during aerosol sampling periods rather than at interval points
-write.csv(RA.df, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/to.calculate.water.during.sampling.periods.csv")
-water.sampling.periods <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/water.sampling.period.csv", header=TRUE)
+write.csv(RA.df, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/to.calculate.water.during.sampling.periods.csv")
+water.sampling.periods <- read.csv("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/water.sampling.period.csv", header=TRUE)
 RA.df.0 <- RA.df %>% left_join(water.sampling.periods, by = "ASV", keep = FALSE) 
 RA.df.SPs <- RA.df.0 %>% dplyr::select("ASV", 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA." )
 overlapping.cyanos.ASVs <- overlapping.cyanos %>% dplyr::select(ASV)
 overlapping.cyanos.ASVs <- overlapping.cyanos.ASVs %>% left_join(RA.df.SPs, by = "ASV") %>% dplyr::select("ASV", "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
-overlapping.cyanos.1 <- overlapping.cyanos %>% left_join(overlapping.cyanos.ASVs) %>% select("ASV", 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
+overlapping.cyanos.1 <- overlapping.cyanos %>% left_join(overlapping.cyanos.ASVs) %>% dplyr::select("ASV", 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
 
 #Using interval start and stop time samples rather than averages for water conditions
 overlapping.cyanos.start.times <- RA.df.0 %>% dplyr::select("ASV", 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B',"06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
 overlapping.cyanos.start.times.ASVs <- overlapping.cyanos.ASVs %>% left_join(overlapping.cyanos.start.times, by = "ASV") %>% dplyr::select("ASV", "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
-overlapping.cyanos.start.times.ASVs.1 <- overlapping.cyanos %>% left_join(overlapping.cyanos.ASVs) %>% select("ASV", 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
+overlapping.cyanos.start.times.ASVs.1 <- overlapping.cyanos %>% left_join(overlapping.cyanos.ASVs) %>% dplyr::select("ASV", 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "06.11_A", "06.11_B", "06.23_A", "06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B", "09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B", "Kingdom", "Phylum"  ,"Class" ,  "Order" ,  "Family" , "Genus"  , "Species", "NA.")
 
 #Plot Color Schemes
 brewer.pal(n = 12, name = 'Paired')
@@ -204,12 +207,12 @@ species.colors <- c("Anabaena" = "#4E79A7",
 # plotting relative abundance of bacterial communities by CSS, with water values shown at intervals
 RA.df.1 <- RA.df %>% group_by(Class) %>% summarise_if(is.numeric, ~sum(na.exclude(.)))
 RA.df.2 <- RA.df.1 %>% dplyr::select(S1_A:`10.01_B`)
-RA.df.3 <- RA.df.2 %>% summarise(across(S1_A:`10.01_B`, sum))
+RA.df.3 <- RA.df.2 %>% dplyr::summarise(across(S1_A:`10.01_B`, sum))
 RA.df.4 <- mapply(`/`, RA.df.2, RA.df.3)
 Class.26 <- RA.df.1 %>% dplyr::select("Class") %>% unique()
 RA.df.5 <- cbind(Class.26, RA.df.4)
 RA.df.6 <- RA.df.5 %>% mutate_at(vars(Class), ~replace_na(., "z.Not.Assigned"))
-write.csv(RA.df.6, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Relative.Abundance.Class.interval.csv")
+write.csv(RA.df.6, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Relative.Abundance.Class.interval.csv")
 RA.df.7 <- RA.df.6 %>% mutate(Class = case_when(
   Class == "Acidobacteria" ~ "Acidobacteria",
   Class == "Actinobacteria" ~ "Actinobacteria",
@@ -244,8 +247,10 @@ RA.df.7 <- RA.df.6 %>% mutate(Class = case_when(
   Class ==   "Synergistetes"    ~ "z.Other",
   Class == "Verrucomicrobia"  ~ "z.Other",
   Class == "z.Not.Assigned"  ~ "z.Other")) 
-RA.df.8 <- RA.df.7 %>% group_by(Class) %>% summarise(across(S1_A:`10.01_B`, sum))
-RA.df.9 <- pivot_longer(RA.df.8, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B',"06.11_A", "06.11_B", "06.23_A","06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B","09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "0") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) 
+RA.df.8 <- RA.df.7 %>% group_by(Class) %>% dplyr::summarise(across(S1_A:`10.01_B`, sum))
+RA.df.9 <- pivot_longer(RA.df.8, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B',"06.11_A", "06.11_B", "06.23_A","06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B","09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B"), names_to = "Sample") %>% 
+  mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "0") ~ "Water")) %>% 
+  mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) 
 RA.df.PM <- RA.df.9 %>% dplyr::filter(Sample_Type == "PM")
 RA.df.Water <- RA.df.9 %>% dplyr::filter(Sample_Type == "Water")
 RA.plot.PM <- ggplot(RA.df.PM, aes(fill = Class, y=value, x=Sample)) + 
@@ -278,12 +283,12 @@ RA.plot.PM + RA.plot.Water.1
 #plotting relative abundance of bacterial communities by CSS, with water values averaged for aerosol sampling periods
 RA.df.1 <- RA.df.SPs %>% group_by(Class) %>% summarise_if(is.numeric, ~sum(na.exclude(.)))
 RA.df.2 <- RA.df.1 %>% dplyr::select(S1_A:`W8_B`)
-RA.df.3 <- RA.df.2 %>% summarise(across(S1_A:`W8_B`, sum))
+RA.df.3 <- RA.df.2 %>% dplyr::summarise(across(S1_A:`W8_B`, sum))
 RA.df.4 <- mapply(`/`, RA.df.2, RA.df.3)
 Class.26 <- RA.df.1 %>% dplyr::select("Class") %>% unique()
 RA.df.5 <- cbind(Class.26, RA.df.4)
 RA.df.6 <- RA.df.5 %>% mutate_at(vars(Class), ~replace_na(., "z.Not.Assigned"))
-write.csv(RA.df.6, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Relative.Abundance.Class.csv")
+write.csv(RA.df.6, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Relative.Abundance.Class.csv")
 RA.df.7 <- RA.df.6 %>% mutate(Class = case_when(
   Class == "Acidobacteria" ~ "Acidobacteria",
   Class == "Actinobacteria" ~ "Actinobacteria",
@@ -318,7 +323,7 @@ RA.df.7 <- RA.df.6 %>% mutate(Class = case_when(
   Class ==   "Synergistetes"    ~ "z.Other",
   Class == "Verrucomicrobia"  ~ "z.Other",
   Class == "z.Not.Assigned"  ~ "z.Other")) 
-RA.df.8 <- RA.df.7 %>% group_by(Class) %>% summarise(across(S1_A:`W8_B`, sum))
+RA.df.8 <- RA.df.7 %>% group_by(Class) %>% dplyr::summarise(across(S1_A:`W8_B`, sum))
 RA.df.9 <- pivot_longer(RA.df.8, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) 
 RA.df.PM <- RA.df.9 %>% dplyr::filter(Sample_Type == "PM")
 RA.df.Water <- RA.df.9 %>% dplyr::filter(Sample_Type == "Water")
@@ -352,12 +357,12 @@ RA.plot.PM + RA.plot.Water
 ## Plotting relative abundance of cyanobacterial genera by CSS, with water values shown at intervals
 species.RA.df.1 <- RA.df %>% filter(Class == "Cyanobacteria") %>% group_by(Species) %>% summarise_if(is.numeric, ~sum(na.exclude(.)))
 species.RA.df.2 <- species.RA.df.1 %>% dplyr::select(S1_A:`10.01_B`)
-species.RA.df.3 <- species.RA.df.2 %>% summarise(across(S1_A:`10.01_B`, sum))
+species.RA.df.3 <- species.RA.df.2 %>% dplyr::summarise(across(S1_A:`10.01_B`, sum))
 species.RA.df.4 <- mapply(`/`, species.RA.df.2, species.RA.df.3)
 Species <- species.RA.df.1 %>% dplyr::select("Species") %>% unique()
 species.RA.df.5 <- cbind(Species, species.RA.df.4)
 species.RA.df.6 <- species.RA.df.5 %>% mutate_at(vars(Species), ~replace_na(., "z.Not.Assigned")) 
-write.csv(species.RA.df.6, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Relative.Abundance.species.intervals.csv")
+write.csv(species.RA.df.6, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Relative.Abundance.species.intervals.csv")
 species.RA.df.6$Species
 species.RA.df.7 <- species.RA.df.6 %>% mutate(Species = case_when(
   Species == "Anabaena_PCC7108" ~ "Anabaena",
@@ -390,7 +395,7 @@ species.RA.df.7 <- species.RA.df.6 %>% mutate(Species = case_when(
   Species == "Synechococcus_PCC7942" ~ "z.Other",
   Species == "Tolypothrix_IAM_M259" ~ "z.Other",
   Species == "Tolypothrix_PCC7601" ~ "Tolypothrix",
-  Species == "z.Not.Assigned" ~ "z.Not.Assigned")) %>% group_by(Species) %>% summarise(across(S1_A:`10.01_B`, sum))
+  Species == "z.Not.Assigned" ~ "z.Not.Assigned")) %>% group_by(Species) %>% dplyr::summarise(across(S1_A:`10.01_B`, sum))
 species.RA.df.8 <- pivot_longer(species.RA.df.7, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B',"06.11_A", "06.11_B", "06.23_A","06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B","09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "0") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0))
 species.RA.df.PM <- species.RA.df.8 %>% dplyr::filter(Sample_Type == "PM")
 species.RA.df.Water <- species.RA.df.8 %>% dplyr::filter(Sample_Type == "Water")
@@ -424,12 +429,12 @@ species.RA.plot.PM + species.RA.plot.Water.1
 ## Plotting relative abundance of cyanobacterial genera by CSS, with water values shown as averages over PM sampling periods
 species.RA.df.1 <- RA.df.SPs %>% filter(Class == "Cyanobacteria") %>% group_by(Species) %>% summarise_if(is.numeric, ~sum(na.exclude(.)))
 species.RA.df.2 <- species.RA.df.1 %>% dplyr::select(S1_A:`W8_B`)
-species.RA.df.3 <- species.RA.df.2 %>% summarise(across(S1_A:`W8_B`, sum))
+species.RA.df.3 <- species.RA.df.2 %>% dplyr::summarise(across(S1_A:`W8_B`, sum))
 species.RA.df.4 <- mapply(`/`, species.RA.df.2, species.RA.df.3)
 Species <- species.RA.df.1 %>% dplyr::select("Species") %>% unique()
 species.RA.df.5 <- cbind(Species, species.RA.df.4)
 species.RA.df.6 <- species.RA.df.5 %>% mutate_at(vars(Species), ~replace_na(., "z.Not.Assigned")) 
-write.csv(species.RA.df.6, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Relative.Abundance.species.csv")
+write.csv(species.RA.df.6, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/Relative.Abundance.species.csv")
 species.RA.df.7 <- species.RA.df.6 %>% mutate(Species = case_when(
   Species == "Anabaena_PCC7108" ~ "Anabaena",
   Species == "Anabaena" ~ "Anabaena",
@@ -461,7 +466,7 @@ species.RA.df.7 <- species.RA.df.6 %>% mutate(Species = case_when(
   Species == "Synechococcus_PCC7942" ~ "z.Other",
   Species == "Tolypothrix_IAM_M259" ~ "z.Other",
   Species == "Tolypothrix_PCC7601" ~ "Tolypothrix",
-  Species == "z.Not.Assigned" ~ "z.Not.Assigned")) %>% group_by(Species) %>% summarise(across(S1_A:`W8_B`, sum))
+  Species == "z.Not.Assigned" ~ "z.Not.Assigned")) %>% group_by(Species) %>% dplyr::summarise(across(S1_A:`W8_B`, sum))
 species.RA.df.8 <- pivot_longer(species.RA.df.7, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0))
 species.RA.df.PM <- species.RA.df.8 %>% dplyr::filter(Sample_Type == "PM")
 species.RA.df.Water <- species.RA.df.8 %>% dplyr::filter(Sample_Type == "Water")
@@ -528,10 +533,10 @@ rAF.values <- ASV.RAs.x %>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` =
 rAF.values.A <- ASV.RAs.x %>% dplyr::filter(str_detect(Site, "A")) %>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` = (log(1+(PM/Water)))) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`, `log(1+r-AF)`) %>% mutate_at(vars(c(`r-AF`, `log(1+r-AF)`)), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`log(1+r-AF)`= na_if(`log(1+r-AF)`, "Inf"))
 rAF.values.B <- ASV.RAs.x %>% dplyr::filter(str_detect(Site, "B"))%>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` = (log(1+(PM/Water)))) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`, `log(1+r-AF)`) %>% mutate_at(vars(c(`r-AF`, `log(1+r-AF)`)), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`log(1+r-AF)`= na_if(`log(1+r-AF)`, "Inf"))
 rAF.matrix <- ASV.RAs.x %>% mutate(`r-AF` = PM/Water) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`) %>% mutate_at(vars(`r-AF`), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% pivot_wider(names_from = Sampling_Period, values_from = `r-AF`)
-AF.summary.stats.1 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join(ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
-AF.summary.stats.2 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "median_iqr") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, median, iqr, Species)
+AF.summary.stats.1 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join(ASV.w.taxonomy, by = "ASV") %>% dplyr::select(ASV, variable, n, mean, sd, Species)
+AF.summary.stats.2 <- rAF.values %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "median_iqr") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% dplyr::select(ASV, variable, n, median, iqr, Species)
 AF.summary.stats.ASV <- AF.summary.stats.1 %>% left_join(AF.summary.stats.2, by = c("ASV", "variable", "n", "Species"))
-AF.summary.stats.Site <- rAF.values %>% group_by(Site) %>% get_summary_stats(`r-AF`, type = "median_iqr") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, median, iqr, Species)
+AF.summary.stats.Site <- rAF.values %>% group_by(Site) %>% get_summary_stats(`r-AF`, type = "median_iqr") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% dplyr::select(ASV, variable, n, median, iqr, Species)
 
 #various version of heat map using different data transformations to show enrichment in aerosol
 ggplot(rAF.values, aes(Sampling_Period, ASV, fill= `r-AF`)) + geom_tile()+ scale_fill_gradientn(colours = c("lightcyan3", "beige", "darkred"))+ theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
@@ -550,7 +555,7 @@ pairwise.site <- pairwise.wilcox.test(AF.for.stats$`r-AF`, AF.for.stats$Site,
 pairwise.site
 summary.stats.AF.by.Site <- rAF.values %>% separate(Sampling_Period, c("Period", "Site")) %>% group_by(Site) %>% get_summary_stats(`r-AF`, type = "median_iqr") #stratifying by Site
 summary.stats.AF.by.period <- rAF.values %>% separate(Sampling_Period, c("Period", "Site")) %>% group_by(Period) %>% get_summary_stats(`r-AF`, type = "median_iqr") #stratifying by sampling period
-write.csv(AF.summary.stats, "/Users/haleyplaas/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/AF.summary.stats.csv")
+write.csv(AF.summary.stats, "/Users/hplaas/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/AF.summary.stats.csv")
 
 #AF values calculated with START TIMES rather than averages
 start.times <- overlapping.cyanos.start.times.ASVs.1 %>% dplyr::rename("W1_A"= "06.11_A", "W1_B" = "06.11_B", "W2_A" = "06.23_A", "W2_B" = "06.23_B", "W3_A" = "07.07_A", "W3_B" = "07.07_B", "W4_A" = "07.21_A", "W4_B" = "07.21_B", "W5_A" = "08.12_A", "W5_B" = "08.12_B", "W6_A" = "08.18_A", "W6_B" = "08.18_B", "W7_A" = "09.01_A", "W7_B" = "09.01_B", "W8_A" = "09.15_A", "W8_B" = "09.15_B")
@@ -558,8 +563,8 @@ ASV.RA.df.AF.start <- pivot_longer(start.times, cols = c('S1_A', 'S2_A', 'S2_B',
 ASV.RAs.start <- ASV.RA.df.AF.start %>% group_by(ASV, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value) 
 ASV.AF.without.log.transformation.start <- ASV.RAs.start %>% mutate(`r-AF` = PM/Water) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% group_by(ASV) %>% dplyr::summarise_at(vars(`r-AF`), ~mean(., na.rm = T)) %>% left_join(ASV.w.taxonomy, by = "ASV") %>% dplyr::select(ASV, `r-AF`, Species)
 ASV.AFs.start <- ASV.RAs.start %>% mutate(`r-AF` = (PM)/(Water)) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% mutate(`r-AF`= na_if(`r-AF`, "NA")) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate_at(vars(`r-AF`), ~replace_na(., 0)) %>% mutate(`1+r-AF` = (1+PM)/(1+Water)) %>% mutate(`log.r-AF` = log(`r-AF`)) %>% mutate(`log.1+r-AF` = log(`1+r-AF`)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% filter(ASV != "ASV4107" , ASV != "ASV2139" , ASV != "ASV1848" , ASV != "ASV0986") 
-AF.summary.stats.start <- ASV.AFs.start %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
-AF.summary.stats.start.nonpara <- ASV.AFs.start %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "median") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, median,  Species)
+AF.summary.stats.start <- ASV.AFs.start %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% dplyr::select(ASV, variable, n, mean, sd, Species)
+AF.summary.stats.start.nonpara <- ASV.AFs.start %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "median") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% dplyr::select(ASV, variable, n, median,  Species)
 
 #AF with STOP TIMES instead of averages 
 stop.times <- overlapping.cyanos.start.times.ASVs.1 %>% dplyr::rename("W1_A"= "06.23_A", "W1_B" = "06.23_B", "W2_A" = "07.07_A", "W2_B" = "07.07_B", "W3_A" = "07.21_A", "W3_B" = "07.21_B", "W4_A" = "08.12_A", "W4_B" = "08.12_B", "W5_A" = "08.18_A", "W5_B" = "08.18_B", "W6_A" = "09.01_A", "W6_B" = "09.01_B", "W7_A" = "09.15_A", "W7_B" = "09.15_B", "W8_A" = "10.01_A", "W8_B" = "10.01_B")
@@ -567,13 +572,13 @@ ASV.RA.df.AF.stop <- pivot_longer(stop.times, cols = c('S1_A', 'S2_A', 'S2_B', '
 ASV.RAs.stop <- ASV.RA.df.AF.stop %>% group_by(ASV, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value) 
 ASV.AF.without.log.transformation.stop <- ASV.RAs.stop %>% mutate(`r-AF` = PM/Water) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% group_by(ASV) %>% dplyr::summarise_at(vars(`r-AF`), ~mean(., na.rm = T)) %>% left_join(ASV.w.taxonomy, by = "ASV") %>% dplyr::select(ASV, `r-AF`, Species)
 ASV.AFs.stop <- ASV.RAs.stop %>% mutate(`r-AF` = (PM)/(Water)) %>% mutate(`r-AF`= na_if(`r-AF`, "NaN")) %>% mutate(`r-AF`= na_if(`r-AF`, "NA")) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate_at(vars(`r-AF`), ~replace_na(., 0)) %>% mutate(`1+r-AF` = (1+PM)/(1+Water)) %>% mutate(`log.r-AF` = log(`r-AF`)) %>% mutate(`log.1+r-AF` = log(`1+r-AF`)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% filter(ASV != "ASV4107" , ASV != "ASV2139" , ASV != "ASV1848" , ASV != "ASV0986") 
-AF.summary.stats.stop <- ASV.AFs.stop %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% select(ASV, variable, n, mean, sd, Species)
+AF.summary.stats.stop <- ASV.AFs.stop %>% group_by(ASV) %>% get_summary_stats(`r-AF`, type = "mean_sd") %>% left_join( ASV.w.taxonomy, by = "ASV") %>% dplyr::select(ASV, variable, n, mean, sd, Species)
 
 # ---------------------------- LOADING IN ALL WATER AND METEOROLOGICAL METADATA FOR REGRESSION ANALYSES ----------------------------------
 # Loading in the water quality metadata
-water_metadata <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/master_metadata.csv", header = TRUE, na.strings = c(""," ", ".", "NA")) %>% dplyr::select(-SAMPLE.ID) 
-Sonde.Data <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/Sonde_Data.csv", header = TRUE, na.strings = c(""," ", ".", "NA")) %>% mutate(Site = recode(Site, `1`="A", `2`="B"))
-all.water.metadata <- cbind(water_metadata, Sonde.Data) %>% select(-c(22,23)) %>% unite("Site_Date", c(Site,Date), sep = "_") 
+water_metadata <- read.csv("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/master_metadata.csv", header = TRUE, na.strings = c(""," ", ".", "NA")) %>% dplyr::select(-SAMPLE.ID) 
+Sonde.Data <- read.csv("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/Sonde_Data.csv", header = TRUE, na.strings = c(""," ", ".", "NA")) %>% mutate(Site = recode(Site, `1`="A", `2`="B"))
+all.water.metadata <- cbind(water_metadata, Sonde.Data) %>% dplyr::select(-c(22,23)) %>% unite("Site_Date", c(Site,Date), sep = "_") 
 #Triplicates into averages with standard deviations 
 avg.metadata <- all.water.metadata %>% group_by(Site_Date) %>% dplyr::summarise_all(~mean(.), na.rm= FALSE)
 colnames(avg.metadata) <- paste(colnames(avg.metadata),"avg",sep="_") 
@@ -605,13 +610,13 @@ metadata.stop.date <- metadata.with.sd %>% mutate(Sampling_Period = case_when(Da
                                                                                "2020-10-01" == Date ~ "S8"))
 
 # Converting water metadata to averages over Sampling Periods 
-write.csv(metadata.with.sd, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/all.water.metadata.csv") # this data frame was exported to manipulate externally in Excel. To approximate the water conditions during the course of each aerosol sampling, water metadata collected at the start and end of each aerosol sampling period was averaged. 
-Sampling_Period_water_metadata.with.sd <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/all.water.metadata.2.csv", header = TRUE, na.strings = c(""," ", ".", "NA","#DIV/0!"))
-Sampling_Period_water_metadata <- Sampling_Period_water_metadata.with.sd %>% select(1:29)
+write.csv(metadata.with.sd, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/all.water.metadata.csv") # this data frame was exported to manipulate externally in Excel. To approximate the water conditions during the course of each aerosol sampling, water metadata collected at the start and end of each aerosol sampling period was averaged. 
+Sampling_Period_water_metadata.with.sd <- read.csv("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/all.water.metadata.2.csv", header = TRUE, na.strings = c(""," ", ".", "NA","#DIV/0!"))
+Sampling_Period_water_metadata <- Sampling_Period_water_metadata.with.sd %>% dplyr::select(1:29)
 
 # loading in the atmosphere metadata
 # cleaned Met station data for wind vectors
-wind.data <- read.csv("/Users/haleyplaas/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/DaytimeMsmts_kb.csv", header = TRUE, na.strings = c(""," ", ".", "NA", "NaN", "NAN")) 
+wind.data <- read.csv("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/DaytimeMsmts_kb.1.csv", header = TRUE, na.strings = c(""," ", ".", "NA", "NaN", "NAN")) 
 wind.data.1 <- separate(wind.data, col = Date_Time, into = c("Date", "Time"), sep = " ", remove = T)
 wind.data.2 <- wind.data.1 %>% mutate(NS.vec = WS*cos(WD)) %>% mutate(EW.vec = WS*sin(WD)) %>% mutate(Date = as.Date(Date,"%m/%d/%y"))
 wind.data.3 <- wind.data.2 %>% mutate(Sampling_Period = case_when('2020-06-12' <= Date & Date <= '2020-06-23' ~ "S1", 
@@ -621,15 +626,15 @@ wind.data.3 <- wind.data.2 %>% mutate(Sampling_Period = case_when('2020-06-12' <
                                                                   "2020-08-13" <= Date & Date <= '2020-08-18' ~ "S5",
                                                                   "2020-08-19" <= Date & Date <= '2020-09-01' ~ "S6",
                                                                   "2020-09-02" <= Date & Date <= '2020-09-14' ~ "S7",
-                                                                  "2020-09-15" <= Date & Date <= '2020-10-01' ~  "S8")) %>% select(-Time)
+                                                                  "2020-09-15" <= Date & Date <= '2020-10-01' ~  "S8")) %>% dplyr::select(-Time)
 wind.data.avg.Sampling.Period <- wind.data.3 %>% group_by(Sampling_Period) %>% dplyr::summarise_all((~mean(na.omit(.)))) %>% mutate(Air.Mass = atan(EW.vec/NS.vec)) %>% mutate(Site = "A")
 wind.data.avg.Sampling.Period.B <- wind.data.avg.Sampling.Period %>% mutate(Site = "B") 
 wind.data.avg.Sampling.Period.1 <- rbind(wind.data.avg.Sampling.Period, wind.data.avg.Sampling.Period.B) %>% dplyr::rename(Wind.Speed = WS) %>% dplyr::rename(Wind.Direction = WD)
 
 # Loading in the other meteorological station data
-met.station.data <- read.csv("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/met.station.data.csv", header = TRUE, na.strings = c(""," ", ".", "NA", "NaN")) 
+met.station.data <- read.csv("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/met.station.data.csv", header = TRUE, na.strings = c(""," ", ".", "NA", "NaN")) 
 met.station.data.1 <- met.station.data  %>% mutate(Date = as.Date(Date, "%Y-%m-%d")) 
-met.station.data.2 <- met.station.data.1 %>% group_by(Sampling_Period, Site) %>% dplyr::summarise_all((~mean(na.omit(.)))) %>% select(-Date)
+met.station.data.2 <- met.station.data.1 %>% group_by(Sampling_Period, Site) %>% dplyr::summarise_all((~mean(na.omit(.)))) %>% dplyr::select(-Date)
 met.station.data.2[is.na(met.station.data.2)] <- NA
 
 # combining metadata
@@ -637,88 +642,92 @@ met.station.data.2[is.na(met.station.data.2)] <- NA
 all.metadata <- Sampling_Period_water_metadata %>% dplyr::left_join(met.station.data.2, by = c("Site", "Sampling_Period"), keep = F) %>% left_join(wind.data.avg.Sampling.Period.1, by = c("Site", "Sampling_Period"), keep = F)
 
 # adding the relative abundances of bacteria and cyanobacteria in PM and water samples to the metadata 
+RA.df.AF <- pivot_longer(RA.df.6, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample) 
+class.RAs <- RA.df.AF %>% group_by(Class, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value)  
 class.RAs$Sampling_Period <- sub("^", "S", class.RAs$Sampling_Period) #don't run twice
 class.RAs.2 <- class.RAs %>% filter(Class == "Cyanobacteria") %>% pivot_wider(names_from = Class, values_from = c(PM, Water))
+species.RA.df.AF <- pivot_longer(species.RA.df.6, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
+species.RAs <- species.RA.df.AF %>% group_by(Species, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value)
 species.RAs$Sampling_Period <- sub("^", "S", species.RAs$Sampling_Period) #don't run twice
 species.RAs.2 <- species.RAs %>% pivot_wider(names_from = Species, values_from = c(PM, Water)) 
 relative.abundances <- class.RAs.2 %>% left_join(species.RAs.2, by = c("Site", "Sampling_Period"))
-non.zeroes <- relative.abundances %>% ungroup(Sampling_Period, Site) %>% select(-Sampling_Period, -Site) %>% select_if(colSums(.) != 0)
+non.zeroes <- relative.abundances %>% ungroup(Sampling_Period, Site) %>% dplyr::select(-Sampling_Period, -Site) %>% select_if(colSums(.) != 0)
 relative.abundances.1 <- relative.abundances %>% dplyr::select(Site, Sampling_Period) %>% cbind(non.zeroes) %>% group_by(Site, Sampling_Period)
 regression.df.0 <- all.metadata %>% dplyr::left_join(relative.abundances.1, by = c("Site", "Sampling_Period"))
 
 # Loading in individual PM2.5 mass concentrations readings from pDR data to add to metadata 
 col.names <- c("Site", "record", "ug/m3", "Temp", "RHumidity", "AtmoPressure", "Flags", "Time", "Date")
-june.23.a <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-06-23_pDRA.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+june.23.a <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-06-23_pDRA.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 A <- as.data.frame(rep("A", times = 12529, length.out = NA, each = 1)) 
 colnames(A) <- "Site"
 june.23.a.1 <- cbind(A, june.23.a)
 colnames(june.23.a.1) <- col.names 
 june.23.a.1 <- june.23.a.1 %>% dplyr::select(-record)
-june.23.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-06-23_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+june.23.b <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-06-23_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 B <- as.data.frame(rep("B", times = 16964, length.out = NA, each = 1)) 
 colnames(A) <- "Site"
 june.23.b.1 <- cbind(B, june.23.b)
 colnames(june.23.b.1) <- col.names 
 june.23.b.1 <- june.23.b.1 %>% dplyr::select(-record)
-july.07.a.1 <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRA.1.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
-july.07.a.2 <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRA.2.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+july.07.a.1 <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRA.1.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+july.07.a.2 <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRA.2.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 july.07.a <- rbind(july.07.a.1, july.07.a.2)
 A.1 <- as.data.frame(rep("A", times = 16374, length.out = NA, each = 1)) 
 colnames(A.1) <- "Site"
 july.07.a.3 <- cbind(A.1, july.07.a)
 colnames(july.07.a.3) <- col.names 
 july.07.a.3 <- july.07.a.3 %>% dplyr::select(-record)
-july.07.b.1 <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRB.1.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
-july.07.b.2 <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRB.2.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+july.07.b.1 <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRB.1.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+july.07.b.2 <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-07_pDRB.2.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 july.07.b <- rbind(july.07.b.1, july.07.b.2)
 B.1 <- as.data.frame(rep("A", times = 19648, length.out = NA, each = 1)) 
 colnames(B.1) <- "Site"
 july.07.b.3 <- cbind(B.1, july.07.b)
 colnames(july.07.b.3) <- col.names 
 july.07.b.3 <- july.07.b.3 %>% dplyr::select(-record)
-july.21.a <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-21_pDRA.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+july.21.a <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-21_pDRA.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 A.2 <- as.data.frame(rep("A", times = 20098, length.out = NA, each = 1)) 
 colnames(A.2) <- "Site"
 july.21.a.1 <- cbind(A.2, july.21.a)
 colnames(july.21.a.1) <- col.names 
 july.21.a.1 <- july.21.a.1 %>% dplyr::select(-record)
-july.21.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-21_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+july.21.b <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-07-21_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 B.2 <- as.data.frame(rep("B", times = 20041, length.out = NA, each = 1)) 
 colnames(B.2) <- "Site"
 july.21.b.1 <- cbind(B.2, july.21.b)
 colnames(july.21.b.1) <- col.names 
 july.21.b.1 <- july.21.b.1 %>% dplyr::select(-record)
-aug.03.a <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-08-03_pDRA.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+aug.03.a <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-08-03_pDRA.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 A.3 <- as.data.frame(rep("A", times = 3426, length.out = NA, each = 1)) 
 colnames(A.3) <- "Site"
 aug.03.a.1 <- cbind(A.3, aug.03.a)
 colnames(aug.03.a.1) <- col.names 
 aug.03.a.1 <- aug.03.a.1 %>% dplyr::select(-record)
-aug.03.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-08-03_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+aug.03.b <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-08-03_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 B.3 <- as.data.frame(rep("B", times = 18537, length.out = NA, each = 1)) 
 colnames(B.3) <- "Site"
 aug.03.b.1 <- cbind(B.3, aug.03.b)
 colnames(aug.03.b.1) <- col.names 
 aug.03.b.1 <- aug.03.b.1 %>% dplyr::select(-record)
-aug.18.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-08-18_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+aug.18.b <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-08-18_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 B.4 <- as.data.frame(rep("B", times = 8553, length.out = NA, each = 1)) 
 colnames(B.4) <- "Site"
 aug.18.b.1 <- cbind(B.4, aug.18.b)
 colnames(aug.18.b.1) <- col.names 
 aug.18.b.1 <- aug.18.b.1 %>% dplyr::select(-record)
-sept.01.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-09-01_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+sept.01.b <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-09-01_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 B.5 <- as.data.frame(rep("A", times = 34186, length.out = NA, each = 1)) 
 colnames(B.5) <- "Site"
 sept.01.b.3 <- cbind(B.5, sept.01.b)
 colnames(sept.01.b.3) <- col.names 
 sept.01.b.3 <- sept.01.b.3 %>% dplyr::select(-record)
-sept.15.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-09-15_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+sept.15.b <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-09-15_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 B.6 <- as.data.frame(rep("B", times = 20058, length.out = NA, each = 1)) 
 colnames(B.6) <- "Site"
 sept.15.b.1 <- cbind(B.6, sept.15.b)
 colnames(sept.15.b.1) <- col.names 
 sept.15.b.1 <- sept.15.b.1 %>% dplyr::select(-record)
-oct.01.b <- read.delim("/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-10-01_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
+oct.01.b <- read.delim("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/pDR/2020-10-01_pDRB.txt", header = FALSE, sep = ",", dec = ".", skip = 25, na.strings = c("NA"))
 B.7 <- as.data.frame(rep("B", times = 23171, length.out = NA, each = 1)) 
 colnames(B.7) <- "Site"
 oct.01.b.1 <- cbind(B.7, oct.01.b)
@@ -782,7 +791,7 @@ colnames(pdr.dates) = name
 # Adding Chlorophyll a and cyanobacterial relative abundance data to visualize alongside PM time series 
 Date <- c("2020-06-17", "2020-06-30", "2020-06-30", "2020-07-14","2020-07-14","2020-07-28","2020-07-28","2020-08-15","2020-08-15","2020-08-25","2020-09-08","2020-09-08","2020-09-22","2020-09-22") 
 dates <- as.data.frame(Date) %>% mutate(Date = as.Date(Date, "%Y-%m-%d"))
-cyano.RA <- regression.df.0 %>% dplyr::select(Site, Sampling_Period, CHLA_avg, Water_Cyanobacteria, Water_Dolichospermum_NIES41) %>% mutate(Water_Cyanobacteria = Water_Cyanobacteria*10^2.5, Water_Dolichospermum_NIES41 = Water_Dolichospermum_NIES41*10^2) %>% mutate(dates) %>% dplyr::select(-Sampling_Period) 
+cyano.RA <- regression.df.0 %>% dplyr::select(Site, Sampling_Period, CHLA_avg, Water_Cyanobacteria, Water_Dolichospermum_NIES41) %>% mutate(Water_Cyanobacteria = Water_Cyanobacteria*10^2.5, Water_Dolichospermum_NIES41 = Water_Dolichospermum_NIES41*10^2) %>% mutate(Date = dates$Date) %>% dplyr::select(-Sampling_Period) 
 chla.with.PM <- pdr.together %>% left_join(cyano.RA, by = "Date", keep = FALSE) 
 chla.with.PM.1 <- chla.with.PM %>% mutate_if(is.numeric, ~replace_na(., NA))
 for.avg <- chla.with.PM.1 %>% select(`ug/m3`) %>% na.omit()
@@ -811,17 +820,19 @@ ggplot(chla.with.PM.3, aes(x = Date)) +
 # pooling chlorophyll a data from both sites so it is more representative of entire river between the two sites
 cyano.RA.no.sites <- cyano.RA %>% group_by(Date) %>% dplyr::summarise_at(vars(c("CHLA_avg", "Water_Cyanobacteria", "Water_Dolichospermum_NIES41")), ~mean(na.omit(.)))
 both.sites.1 <- pdr.together %>%  left_join(cyano.RA.no.sites, by = "Date", keep = FALSE)
-both.sites.2 <- both.sites.1 %>% mutate_if(is.numeric, ~replace_na(., NA))
-for.avg <- both.sites.1 %>% select(`ug/m3`) %>% na.omit()
+both.sites.2 <- both.sites.1 %>% mutate_if(is.numeric, ~replace_na(., NA)) 
+all.dates <- as.data.frame(seq(as.Date("2020-06-11"), as.Date("2020-10-01"), by="days")) %>% dplyr::rename(Date =`seq(as.Date(\"2020-06-11\"), as.Date(\"2020-10-01\"), by = \"days\")`)
+both.sites.3 <- all.dates %>% left_join(both.sites.2, by = "Date", KEEP = F)
+for.avg <- both.sites.3 %>% dplyr::select(`ug/m3`) %>% na.omit()
 average.PM <- as.data.frame(5.81, times = 99)
 name <- "avg"
 colnames(average.PM) = name
-both.sites.3 <- cbind(both.sites.2, average.PM) 
+both.sites.4 <- cbind(both.sites.3, average.PM) 
 EPA.std <- as.data.frame(10.5, times = 99)
 name <- "EPA.std"
 colnames(EPA.std) = name
-both.sites.4 <- cbind(both.sites.3, EPA.std) 
-ggplot(both.sites.4, aes(x = Date)) + 
+both.sites.5 <- cbind(both.sites.4, EPA.std) 
+ggplot(both.sites.5, aes(x = Date)) + 
   geom_line(size=0.5, aes(y = `ug/m3`), na.rm=F) + 
   geom_point(size = 3, aes(y=CHLA_avg)) + 
   geom_point(size = 3, aes(y=Water_Dolichospermum_NIES41), color = "green") + 
@@ -836,8 +847,8 @@ ggplot(both.sites.4, aes(x = Date)) +
   theme(legend.position = "none", plot.title = element_text(face = "bold"))
 
 # Determining days that exceeded the baseline ambient PM2.5 as a function of bloom conditions 
-average.PM <- mean(both.sites.3$`ug/m3`)
-median.PM <- median(both.sites.3$`ug/m3`)
+average.PM <- mean(for.avg$`ug/m3`)
+median.PM <- median(for.avg$`ug/m3`)
 pdr.together.1 <- pdr.together %>% mutate(exceeds.baseline = case_when(
   pdr.together$`ug/m3` >= median.PM ~ "1",
   pdr.together$`ug/m3` < median.PM ~ "0")) %>% 
@@ -863,7 +874,7 @@ pdr.together.test <- pdr.together.3 %>% na.omit()
 pdr.together.test %>% shapiro_test(ug/m3)
 hist(pdr.together.test$`ug/m3`) #non-normal, use Wilcoxon Signed Ranks Test, the nonparametric alternative to a T test
 wilcox.test <- wilcox.test(`ug/m3` ~ Bloom, alternative = "greater", data = pdr.together.test)
-wilcox.summary.stats <- pdr.together.test %>% group_by(Bloom) %>% summarise(count = n(), median = median(`ug/m3`), IQR = IQR(`ug/m3`))
+wilcox.summary.stats <- pdr.together.test %>% group_by(Bloom) %>% dplyr::summarise(count = n(), median = median(`ug/m3`), IQR = IQR(`ug/m3`))
 wilcox.test
 wilcox.summary.stats
 ggplot(data = pdr.together.test, aes(x = Bloom, y = `ug/m3`, color=Bloom)) + geom_boxplot() + geom_jitter(aes(color=Bloom, alpha=Bloom)) + theme_bw() + scale_color_manual(values=c("gray50", "gray")) + xlab(" ") + ylab(expression(µg~m^-3~PM[2.5])) + scale_alpha_manual(values=c(1,0.4))
@@ -895,7 +906,7 @@ stop.regression.df.0 <- stop.time.metadata %>% dplyr::left_join(relative.abundan
 #regression.df <- stop.regression.df.0 %>% dplyr::select(-Site, -Sampling_Period) %>% mutate_if(is.integer, as.numeric) #only run this when using stop times
 
 # Outcome Variable: Cyanobacteria in PM
-regression.df  <- regression.df %>% select(PM_Cyanobacteria, everything()) #reordering df for for loop
+regression.df  <- regression.df %>%dplyr::select(PM_Cyanobacteria, everything()) #reordering df for for loop
 columns <- colnames(regression.df)
 lm.test <- list()
 for(i in 2:ncol(regression.df)){
@@ -906,7 +917,7 @@ df.1 <- as.data.frame(do.call(rbind,summaries.1))
 summaries.3 <- lapply(lm.test, summary)
 df.3 <- as.data.frame(do.call(rbind,summaries.3))
 as.data.frame(df.3)
-df.4 <- df.3 %>% select("terms")
+df.4 <- df.3 %>%dplyr::select("terms")
 df.5 <- apply(df.4, 2, as.character) 
 model <- df.5[-1,]
 model <- data.frame(model) 
@@ -920,7 +931,7 @@ cyano.4 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$
 cyano.1 + cyano.2 + cyano.3 + cyano.4
 
 # Outcome Variable: Cyanobacteria in water
-regression.df  <- regression.df %>% select(Water_Cyanobacteria, everything()) #reordering df for for loop
+regression.df  <- regression.df %>%dplyr::select(Water_Cyanobacteria, everything()) #reordering df for for loop
 columns <- colnames(regression.df)
 lm.test <- list()
 for(i in 2:ncol(regression.df)){
@@ -931,7 +942,7 @@ df.1 <- as.data.frame(do.call(rbind,summaries.1))
 summaries.3 <- lapply(lm.test, summary)
 df.3 <- as.data.frame(do.call(rbind,summaries.3))
 as.data.frame(df.3)
-df.4 <- df.3 %>% select("terms")
+df.4 <- df.3 %>%dplyr::select("terms")
 df.5 <- apply(df.4, 2, as.character) 
 model <- df.5[-1,]
 model <- data.frame(model) 
@@ -939,7 +950,7 @@ significant.predictors.cyanos.water <- cbind(model, df.1) %>% dplyr::filter(p.va
 all.predictors.cyanos.water <- cbind(model, df.1)
 
 # Outcome Variable: Microcystis in PM
-regression.df  <- regression.df %>% select(PM_Microcystis_PCC7914, everything()) #reordering df for for loop
+regression.df  <- regression.df %>%dplyr::select(PM_Microcystis_PCC7914, everything()) #reordering df for for loop
 columns <- colnames(regression.df)
 lm.test <- list()
 for(i in 2:ncol(regression.df)){
@@ -950,7 +961,7 @@ df.1 <- as.data.frame(do.call(rbind,summaries.1))
 summaries.3 <- lapply(lm.test, summary)
 df.3 <- as.data.frame(do.call(rbind,summaries.3))
 as.data.frame(df.3)
-df.4 <- df.3 %>% select("terms")
+df.4 <- df.3 %>%dplyr::select("terms")
 df.5 <- apply(df.4, 2, as.character) 
 model <- df.5[-1,]
 model <- data.frame(model) 
@@ -966,7 +977,7 @@ micro.5 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regressi
 micro.1 + micro.2 + micro.3 + micro.4 + micro.5 
 
 # Outcome Variable: Microcystis in water
-regression.df  <- regression.df %>% select(Water_Microcystis_PCC7914, everything()) #reordering df for for loop
+regression.df  <- regression.df %>%dplyr::select(Water_Microcystis_PCC7914, everything()) #reordering df for for loop
 columns <- colnames(regression.df)
 lm.test <- list()
 for(i in 2:ncol(regression.df)){
@@ -977,7 +988,7 @@ df.1 <- as.data.frame(do.call(rbind,summaries.1))
 summaries.3 <- lapply(lm.test, summary)
 df.3 <- as.data.frame(do.call(rbind,summaries.3))
 as.data.frame(df.3)
-df.4 <- df.3 %>% select("terms")
+df.4 <- df.3 %>% dplyr::select("terms")
 df.5 <- apply(df.4, 2, as.character) 
 model <- df.5[-1,]
 model <- data.frame(model) 
@@ -985,7 +996,7 @@ significant.predictors.Water_Microcystis_PCC7914 <- cbind(model, df.1) %>% dplyr
 all.predictors.Water_Microcystis_PCC7914 <- cbind(model, df.1)
 
 # Outcome Variable: Dolichospermum in PM
-regression.df  <- regression.df %>% select(PM_Dolichospermum_NIES41 , everything()) #reordering df for for loop
+regression.df  <- regression.df %>% dplyr::select(PM_Dolichospermum_NIES41 , everything()) #reordering df for for loop
 columns <- colnames(regression.df)
 lm.test <- list()
 for(i in 2:ncol(regression.df)){
@@ -996,7 +1007,7 @@ df.1 <- as.data.frame(do.call(rbind,summaries.1))
 summaries.3 <- lapply(lm.test, summary)
 df.3 <- as.data.frame(do.call(rbind,summaries.3))
 as.data.frame(df.3)
-df.4 <- df.3 %>% select("terms")
+df.4 <- df.3 %>% dplyr::select("terms")
 df.5 <- apply(df.4, 2, as.character) 
 model <- df.5[-1,]
 model <- data.frame(model) 
@@ -1011,7 +1022,7 @@ dolicho.4 <- linear.regression.plot(regression.df$PM_Dolichospermum_NIES41, regr
 dolicho.1 + dolicho.2 + dolicho.3 + dolicho.4 
 
 #Outcome Variable: Dolichospermum in Water
-regression.df  <- regression.df %>% select(Water_Dolichospermum_NIES41 , everything()) #reordering df for for loop
+regression.df  <- regression.df %>% dplyr::select(Water_Dolichospermum_NIES41 , everything()) #reordering df for for loop
 columns <- colnames(regression.df)
 lm.test <- list()
 for(i in 2:ncol(regression.df)){
@@ -1022,7 +1033,7 @@ df.1 <- as.data.frame(do.call(rbind,summaries.1))
 summaries.3 <- lapply(lm.test, summary)
 df.3 <- as.data.frame(do.call(rbind,summaries.3))
 as.data.frame(df.3)
-df.4 <- df.3 %>% select("terms")
+df.4 <- df.3 %>% dplyr::select("terms")
 df.5 <- apply(df.4, 2, as.character) 
 model <- df.5[-1,]
 model <- data.frame(model) 
@@ -1030,7 +1041,7 @@ significant.predictors.Water_Dolichospermum_NIES41 <- cbind(model, df.1) %>% dpl
 all.predictors.Water_Dolichospermum_NIES41 <- cbind(model, df.1)
 
 #Outcome Variable: PM.avg in aerosol
-regression.df  <- regression.df %>% select(PM.avg , everything()) #reordering df for for loop
+regression.df  <- regression.df %>% dplyr::select(PM.avg , everything()) #reordering df for for loop
 columns <- colnames(regression.df)
 lm.test <- list()
 for(i in 2:ncol(regression.df)){
@@ -1041,7 +1052,7 @@ df.1 <- as.data.frame(do.call(rbind,summaries.1))
 summaries.3 <- lapply(lm.test, summary)
 df.3 <- as.data.frame(do.call(rbind,summaries.3))
 as.data.frame(df.3)
-df.4 <- df.3 %>% select("terms")
+df.4 <- df.3 %>% dplyr::select("terms")
 df.5 <- apply(df.4, 2, as.character) 
 model <- df.5[-1,]
 model <- data.frame(model) 
@@ -1074,7 +1085,7 @@ Caenar.plot <- linear.regression.plot(regression.df$Water_Caenarcaniphilales_XX,
 Cyano.plot + Aphani.plot + Dolicho.plot + Micro.plot
 #Outcome Variable: Microcystin 
 colnames(regression.df)
-regression.df  <- regression.df %>% select(MC_avg , everything()) #reordering df for for loop
+regression.df  <- regression.df %>% dplyr::select(MC_avg , everything()) #reordering df for for loop
 columns <- colnames(regression.df)
 lm.test <- list()
 for(i in 2:ncol(regression.df)){
@@ -1085,7 +1096,7 @@ df.1 <- as.data.frame(do.call(rbind,summaries.1))
 summaries.3 <- lapply(lm.test, summary)
 df.3 <- as.data.frame(do.call(rbind,summaries.3))
 as.data.frame(df.3)
-df.4 <- df.3 %>% select("terms")
+df.4 <- df.3 %>% dplyr::select("terms")
 df.5 <- apply(df.4, 2, as.character) 
 model <- df.5[-1,]
 model <- data.frame(model) 
@@ -1115,25 +1126,26 @@ PM.1.s + PM.2.s + PM.3.s + PM.4.s + PM.5.s + PM.6.s + PM.7.s + PM.8.s + PM.9.s
 
 #showing results from using water values as averages between two dates, then only start and only stop dates WRT aerosol sampling
 #Exporting Statistically Significant Environmental Drivers from each aerosol linear regression model series of interest
-write.csv(significant.predictors.cyanos, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.cyanos.csv")
-write.csv(significant.predictors.PM_Dolichospermum_NIES41, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.dolicho.csv")
-write.csv(significant.predictors.PM_Microcystis_PCC7914, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.micro.csv")
-write.csv(significant.predictors.PM.avg, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.csv")
-write.csv(regression.df.0, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/predictor.variables.csv")
+write.csv(significant.predictors.cyanos, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.cyanos.csv")
+write.csv(significant.predictors.PM_Dolichospermum_NIES41, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.dolicho.csv")
+write.csv(significant.predictors.PM_Microcystis_PCC7914, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.micro.csv")
+write.csv(significant.predictors.PM.avg, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.csv")
+write.csv(regression.df.0, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/predictor.variables.csv")
 
 #start only
-write.csv(significant.predictors.cyanos, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/start.PM.cyanos.csv")
-write.csv(significant.predictors.PM_Dolichospermum_NIES41, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/start.PM.dolicho.csv")
-write.csv(significant.predictors.PM_Microcystis_PCC7914, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/start.PM.micro.csv")
-write.csv(significant.predictors.PM.avg, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/start.PM.csv")
+write.csv(significant.predictors.cyanos, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/start.PM.cyanos.csv")
+write.csv(significant.predictors.PM_Dolichospermum_NIES41, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/start.PM.dolicho.csv")
+write.csv(significant.predictors.PM_Microcystis_PCC7914, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/start.PM.micro.csv")
+write.csv(significant.predictors.PM.avg, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/start.PM.csv")
 
 #stop only
-write.csv(significant.predictors.cyanos, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/stop.PM.cyanos.csv")
-write.csv(significant.predictors.PM_Dolichospermum_NIES41, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/stop.PM.dolicho.csv")
-write.csv(significant.predictors.PM_Microcystis_PCC7914, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/stop.PM.micro.csv")
-write.csv(significant.predictors.PM.avg, "/Users/haleyplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/stop.PM.csv")
+write.csv(significant.predictors.cyanos, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/stop.PM.cyanos.csv")
+write.csv(significant.predictors.PM_Dolichospermum_NIES41, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/stop.PM.dolicho.csv")
+write.csv(significant.predictors.PM_Microcystis_PCC7914, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/stop.PM.micro.csv")
+write.csv(significant.predictors.PM.avg, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/stop.PM.csv")
 
-#NMDS plots 
+#NMDS plots #need to fix this code if using plots anytime soon 
+ASV.RA.df.AF <- pivot_longer(overlapping.cyanos.1, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample")  %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
 ASV.abundances <- ASV.RA.df.AF %>% dplyr::select(Sample_Type, Site, Sampling_Period, ASV, value) 
 ASV.abundances[ASV.abundances == 0] <- NA 
 ASV.abundances <- ASV.abundances %>% mutate_all(~replace(., is.na(.),0.0000001))
