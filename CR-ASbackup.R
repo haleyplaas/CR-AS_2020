@@ -1,9 +1,12 @@
 #CR-AS data cleaning, stats, and figures for manuscript
+# *** NOTE WHEN RE-RUNNING CODE NEED TO TAKE # OFF OF LINES 492 & 494 -> PUT IN PLACE SO THEY ARE NOT RE-RUN MID SCRIPT ***
 rm(list=ls()) #clear environment
 setwd("C:/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs") #set working directory 
 #load necessary packages
-#BiocManager::install("")
-library(dplyr); library(tidyr); library(ggplot2); library(gam); library(gamm4);library(cowplot);library(mgcv); library(reshape2); library(MuMIn); library(stringr); library(ISLR); library(voxel); library(gridExtra);library(purrr); library(data.table); library(phyloseq); library(decontam); library(tidyverse); library(DESeq2); library(microbiome); library(vegan); library(viridis); library(patchwork); library(gapminder); library(tidyverse); library(ape); library(RColorBrewer); library(ggpubr);library(rstatix);library(gplots);library(plyr);library(scales);library(labdsv);library(grid);library(gridExtra);library(ggmap);library(permute);library(VennDiagram);library(data.table);library(FD);library(MASS);library(RgoogleMaps);library(lattice);library(reshape);library(ade4);library(phytools);library(utils);library(graphics);library(grDevices);library(metagenomeSeq)
+BiocManager::install("metagenomeSeq")
+install.packages("metagenomeSeq")
+library(dplyr); library(tidyr); library(ggplot2); library(gam); library(gamm4);library(cowplot);library(mgcv); library(reshape2); library(MuMIn); library(stringr); library(ISLR); library(voxel); library(gridExtra);library(purrr); library(data.table); library(phyloseq); library(decontam); library(tidyverse); library(DESeq2); library(microbiome); library(vegan); library(viridis); library(patchwork); library(gapminder); library(tidyverse); library(ape); library(RColorBrewer); library(ggpubr);library(rstatix);library(gplots);library(plyr);library(scales);library(labdsv);library(grid);library(gridExtra);library(ggmap);library(permute);library(VennDiagram);library(data.table);library(FD);library(MASS);library(RgoogleMaps);library(lattice);library(reshape);library(ade4);library(phytools);library(utils);library(graphics);library(grDevices)
+library(metagenomeSeq)
 
 #Reading in the dada2 datasets 
 aerosol <- read.csv("Aerosol_16S_counts.csv", header = TRUE, na.strings = c(""," ", ".", "NA"))
@@ -129,7 +132,7 @@ phyloseq.ob <- phyloseq(seq.tab, meta.tab, taxa.tab, phylo.tree)
 
 #Vizualizing Sequencing Depths
 sequence.depths <- data.table(as(sample_data(phyloseq.ob), "data.frame"),
-                      TotalReads = sample_sums(phyloseq.ob), keep.rownames = TRUE)
+                              TotalReads = sample_sums(phyloseq.ob), keep.rownames = TRUE)
 setnames(sequence.depths, "rn", "SampleID")
 ggplot(sequence.depths, aes(TotalReads)) + geom_histogram() + ggtitle("Sequencing Depth") + facet_wrap("Sample_Type")
 
@@ -179,13 +182,13 @@ overlapping.cyanos.start.times.ASVs.1 <- overlapping.cyanos %>% left_join(overla
 #Plot Color Schemes
 brewer.pal(n = 12, name = 'Paired')
 class.colors <- c("Acidobacteria" = "#4E79A7",
-           "Actinobacteria" = "#F28E2B",
-           "Bacteroidetes"   = "#E15759",
-           "Cyanobacteria"   = "#76B7B2",
-           "Firmicutes"  = "#59A14F",
-           "Planctomycetes" = "#EDC948",
-           "Proteobacteria" = "#FF9DA7",
-           "z.Other" = "#BAB0AC")
+                  "Actinobacteria" = "#F28E2B",
+                  "Bacteroidetes"   = "#E15759",
+                  "Cyanobacteria"   = "#76B7B2",
+                  "Firmicutes"  = "#59A14F",
+                  "Planctomycetes" = "#EDC948",
+                  "Proteobacteria" = "#FF9DA7",
+                  "z.Other" = "#BAB0AC")
 
 species.colors <- c("Anabaena" = "#4E79A7", 
                     "Aphanizomenon" = "#F28E2B",
@@ -245,7 +248,9 @@ RA.df.7 <- RA.df.6 %>% mutate(Class = case_when(
   Class == "Verrucomicrobia"  ~ "z.Other",
   Class == "z.Not.Assigned"  ~ "z.Other")) 
 RA.df.8 <- RA.df.7 %>% group_by(Class) %>% dplyr::summarise(across(S1_A:`10.01_B`, sum))
-RA.df.9 <- pivot_longer(RA.df.8, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B',"06.11_A", "06.11_B", "06.23_A","06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B","09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "0") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) 
+RA.df.9 <- pivot_longer(RA.df.8, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B',"06.11_A", "06.11_B", "06.23_A","06.23_B", "07.07_A", "07.07_B", "07.21_A", "07.21_B", "08.12_A", "08.12_B", "08.18_A", "08.18_B","09.01_A", "09.01_B", "09.15_A", "09.15_B", "10.01_A", "10.01_B"), names_to = "Sample") %>% 
+  mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "0") ~ "Water")) %>% 
+  mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) 
 RA.df.PM <- RA.df.9 %>% dplyr::filter(Sample_Type == "PM")
 RA.df.Water <- RA.df.9 %>% dplyr::filter(Sample_Type == "Water")
 RA.plot.PM <- ggplot(RA.df.PM, aes(fill = Class, y=value, x=Sample)) + 
@@ -275,62 +280,6 @@ RA.plot.Water.1 <- ggplot(RA.df.Water, aes(fill = Class, y=value, x=Sample)) +
 
 RA.plot.PM + RA.plot.Water.1
 
-#clustering by SITE
-RA.df.PM.A <- RA.df.PM %>% dplyr::filter(Site == "A")
-RA.df.PM.B <- RA.df.PM %>% dplyr::filter(Site == "B")
-RA.df.Water.A <- RA.df.Water %>% dplyr::filter(Site == "B")
-RA.df.Water.B <- RA.df.Water %>% dplyr::filter(Site == "B")
-RA.plot.PM.A <- ggplot(RA.df.PM.A, aes(fill = Class, y=value, x=Sample)) + 
-  geom_bar(position="stack", stat="identity", colour = "black") + 
-  theme_half_open() + 
-  theme(text = element_text(size=10), 
-        axis.text.y = element_text(size = 10), 
-        axis.text.x = element_text(size = 7, angle = 45, hjust = 1), 
-        legend.text = element_text(size = 6), 
-        legend.key.size = unit(3, "mm"),
-        legend.position = "none") + 
-  scale_fill_manual(values=class.colors) + 
-  labs(title = expression(paste(PM[2.5]), element_text(face = "bold")), y = "Relative Abundance", x = "Sample") + 
-  guides(fill = guide_legend(ncol = 1))
-RA.plot.PM.B <- ggplot(RA.df.PM.B, aes(fill = Class, y=value, x=Sample)) + 
-  geom_bar(position="stack", stat="identity", colour = "black") + 
-  theme_half_open() + 
-  theme(text = element_text(size=10), 
-        axis.text.y = element_text(size = 10), 
-        axis.text.x = element_text(size = 7, angle = 45, hjust = 1), 
-        legend.text = element_text(size = 6), 
-        legend.key.size = unit(3, "mm"),
-        legend.position = "none") + 
-  scale_fill_manual(values=class.colors) + 
-  labs(title = expression(paste(PM[2.5]), element_text(face = "bold")), y = "Relative Abundance", x = "Sample") + 
-  guides(fill = guide_legend(ncol = 1))
-RA.plot.Water.A <- ggplot(RA.df.Water.A, aes(fill = Class, y=value, x=Sample)) + 
-  geom_bar(position="stack", stat="identity", colour = "black") + 
-  theme_half_open() + 
-  theme(text = element_text(size=10), 
-        axis.text.y = element_text(size = 10), 
-        axis.text.x = element_text(size = 7, angle = 45, hjust = 1), 
-        legend.text = element_text(size = 6), 
-        legend.key.size = unit(3, "mm")) + 
-  scale_fill_manual(values=class.colors) + 
-  labs(title = "Water", y = "Relative Abundance", x = "Sample")
-RA.plot.Water.B <- ggplot(RA.df.Water.B, aes(fill = Class, y=value, x=Sample)) + 
-  geom_bar(position="stack", stat="identity", colour = "black") + 
-  theme_half_open() + 
-  theme(text = element_text(size=10), 
-        axis.text.y = element_text(size = 10), 
-        axis.text.x = element_text(size = 7, angle = 45, hjust = 1), 
-        legend.text = element_text(size = 6), 
-        legend.key.size = unit(3, "mm")) + 
-  scale_fill_manual(values=class.colors) + 
-  labs(title = "Water", y = "Relative Abundance", x = "Sample") + 
-  guides(fill = guide_legend(ncol = 1))
-
-RA.plot.PM.A 
-RA.plot.PM.B 
-RA.plot.Water.A 
-RA.plot.Water.B
-  
 #plotting relative abundance of bacterial communities by CSS, with water values averaged for aerosol sampling periods
 RA.df.1 <- RA.df.SPs %>% group_by(Class) %>% summarise_if(is.numeric, ~sum(na.exclude(.)))
 RA.df.2 <- RA.df.1 %>% dplyr::select(S1_A:`W8_B`)
@@ -548,103 +497,6 @@ species.RA.plot.Water <- ggplot(species.RA.df.Water, aes(fill = Species, y=value
 
 species.RA.plot.PM + species.RA.plot.Water
 
-#CLUSTERING BY SITE 
-species.RA.df.PM.A <- species.RA.df.PM %>% dplyr::filter(Site == "A")
-species.RA.df.PM.B <- species.RA.df.PM %>% dplyr::filter(Site == "B")
-species.RA.df.Water.A <- species.RA.df.Water %>% dplyr::filter(Site == "A")
-species.RA.df.Water.B <- species.RA.df.Water %>% dplyr::filter(Site == "B")
-species.RA.plot.PM.A <- ggplot(species.RA.df.PM.A, aes(fill = Species, y=value, x=Sample)) + 
-  geom_bar(position="stack", stat="identity", colour = "black") + 
-  theme_half_open() + 
-  theme(text = element_text(size=10), 
-        axis.text.y = element_text(size = 10), 
-        axis.text.x = element_text(size = 7, angle = 45, hjust = 1), 
-        legend.text = element_text(size = 6), 
-        legend.key.size = unit(3, "mm"),
-        legend.position = "none") + 
-  scale_fill_manual(values=species.colors) + 
-  labs(title = expression(paste(PM[2.5]), element_text(face = "bold")), y = "Relative Abundance", x = "Sample") + 
-  guides(fill = guide_legend(ncol = 1)) 
-species.RA.plot.PM.B <- ggplot(species.RA.df.PM.B, aes(fill = Species, y=value, x=Sample)) + 
-  geom_bar(position="stack", stat="identity", colour = "black") + 
-  theme_half_open() + 
-  theme(text = element_text(size=10), 
-        axis.text.y = element_text(size = 10), 
-        axis.text.x = element_text(size = 7, angle = 45, hjust = 1), 
-        legend.text = element_text(size = 6), 
-        legend.key.size = unit(3, "mm"),
-        legend.position = "none") + 
-  scale_fill_manual(values=species.colors) + 
-  labs(title = expression(paste(PM[2.5]), element_text(face = "bold")), y = "Relative Abundance", x = "Sample") + 
-  guides(fill = guide_legend(ncol = 1)) 
-species.RA.plot.Water.A <- ggplot(species.RA.df.Water.A, aes(fill = Species, y=value, x=Sample)) + 
-  geom_bar(position="stack", stat="identity", colour = "black") + 
-  theme_half_open() + 
-  theme(text = element_text(size=10), 
-        axis.text.y = element_text(size = 10), 
-        axis.text.x = element_text(size = 7, angle = 45, hjust = 1),
-        legend.position = "none") + 
-  scale_fill_manual(values=species.colors) + 
-  labs(title = "Water", y = "Relative Abundance", x = "Sample")
-species.RA.plot.Water.B <- ggplot(species.RA.df.Water.B, aes(fill = Species, y=value, x=Sample)) + 
-  geom_bar(position="stack", stat="identity", colour = "black") + 
-  theme_half_open() + 
-  theme(text = element_text(size=10), 
-        axis.text.y = element_text(size = 10), 
-        axis.text.x = element_text(size = 7, angle = 45, hjust = 1), 
-        legend.text = element_text(size = 6), 
-        legend.key.size = unit(3, "mm")) + 
-  scale_fill_manual(values=species.colors) + 
-  labs(title = "Water", y = "Relative Abundance", x = "Sample") + 
-  guides(fill = guide_legend(ncol = 1))
-
-species.RA.plot.PM.A + species.RA.plot.PM.B + species.RA.plot.Water.A + species.RA.plot.Water.B
-species.RA.plot.PM.A
-species.RA.plot.PM.B
-species.RA.plot.Water.A
-species.RA.plot.Water.B
-
-
-#plotting time series of abundances (not relative)
-species.RA.df.x <- species.RA.df.1 %>% mutate(Species = case_when(
-  Species == "Anabaena_PCC7108" ~ "Anabaena",
-  Species == "Anabaena" ~ "Anabaena",
-  Species == "Aphanizomenon_NIES81" ~ "Aphanizomenon",
-  Species == "Caenarcaniphilales_XX" ~ "Caenarcaniphilales",
-  Species == "Caldora_VP642b"~ "z.Other",
-  Species == "Calothrix_PCC6303"~ "z.Other",
-  Species == "Cephalothrix_SAG_75.79"~ "z.Other",    
-  Species == "Chroococcidiopsis_PCC_7203"~ "z.Other",
-  Species == "Chroococcidiopsis_SAG_2023"~ "Chroococcidiopsis",
-  Species == "Cyanobium_PCC6307" ~ "Cyanobium",
-  Species == "Cyanothece"~ "z.Other",
-  Species == "Dolichospermum_NIES41" ~ "Dolichospermum",
-  Species == "Gastranaerophilales_XX"~ "z.Other",
-  Species == "Geminocystis_PCC6308"~ "z.Other",
-  Species == "Gloeocapsa"~ "z.Other",
-  Species == "Haloleptolyngbya"~ "Haloleptolyngbya",
-  Species == "Leptolyngbya" ~ "Leptolyngbya",    
-  Species == "Microcystis_PCC7914" ~ "Microcystis",
-  Species == "Nodularia_PCC9350"~ "z.Other",
-  Species == "Nostoc_PCC73102"~ "z.Other",
-  Species == "Nostoc_PCC7524"~ "z.Other",
-  Species == "Obscuribacterales_XX" ~ "z.Other",
-  Species == "Phormidium"~ "z.Other",
-  Species == "Phormidium_IAM_M71"~ "z.Other",        
-  Species == "Pleurocapsa"~ "z.Other",
-  Species == "Pseudanabaena_PCC7429"~ "Pseudanabaena",
-  Species == "Synechococcus_CC9902" ~ "z.Other",
-  Species == "Synechococcus_PCC7942" ~ "z.Other",
-  Species == "Tolypothrix_IAM_M259" ~ "z.Other",
-  Species == "Tolypothrix_PCC7601" ~ "Tolypothrix",
-  Species == "z.Not.Assigned" ~ "z.Not.Assigned")) %>% group_by(Species) %>% dplyr::summarise(across(S1_A:`W8_B`, sum))
-species.RA.df.x1 <- pivot_longer(species.RA.df.x, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0))
-species.RA.df.PM.x <- species.RA.df.x1 %>% dplyr::filter(Sample_Type == "PM")
-species.RA.df.Water.x <- species.RA.df.x1 %>% dplyr::filter(Sample_Type == "Water") 
-
-ggplot(species.RA.df.Water.x, aes(x = Sample, y = value, colour = Species)) + geom_point() 
-
-
 # examining Alpha and Beta Diversity for PM and water samples, for supplementary material
 alpha.diversity <- estimate_richness(phyloseq.ob)
 Observed <- plot_richness(phyloseq.ob,x = "Sample_Type" , color = "Sample_Type", measures = c("Observed")) + geom_boxplot() + theme_bw() + theme(text = element_text(size=7), axis.text.y = element_text(size = 7), axis.text.x = element_text(size = 7, angle = 45, hjust = 1), legend.text = element_text(size = 6), legend.key.size = unit(2, "mm"), legend.position = "none") + labs(title = "Alpha Diversity")
@@ -675,14 +527,8 @@ plot_ordination(phyloseq.ob, ordination, color="Sample_Type") + theme(aspect.rat
 
 #-----------------------------------------------------------------------------------------------------------------------------------------#
 # Calculating aerosolization factors (AF) for cyanobacterial ASVs found in aerosol and water
-ASV.RA.df.AF.x <- pivot_longer(overlapping.cyanos.1, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
+ASV.RA.df.AF.x <- pivot_longer(overlapping.cyanos.1, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample")  %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
 ASV.RAs.x <- ASV.RA.df.AF.x %>% group_by(ASV, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value) 
-
-ggplot(ASV.RAs.x, aes(x = PM, y = Water, colour = Species)) + 
-  geom_point() + 
-  stat_smooth(method = "lm", col = "black") + 
-  scale_fill_manual(Species=species.colors)
-
 rAF.values <- ASV.RAs.x %>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` = (log(1+(PM/Water)))) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`, `log(1+r-AF)`) %>% mutate_at(vars(c(`r-AF`, `log(1+r-AF)`)), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`log(1+r-AF)`= na_if(`log(1+r-AF)`, "Inf")) %>% filter(ASV != "ASV4107" , ASV != "ASV2139" , ASV != "ASV1848" , ASV != "ASV0986") 
 rAF.values.A <- ASV.RAs.x %>% dplyr::filter(str_detect(Site, "A")) %>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` = (log(1+(PM/Water)))) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`, `log(1+r-AF)`) %>% mutate_at(vars(c(`r-AF`, `log(1+r-AF)`)), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`log(1+r-AF)`= na_if(`log(1+r-AF)`, "Inf"))
 rAF.values.B <- ASV.RAs.x %>% dplyr::filter(str_detect(Site, "B"))%>% mutate(`r-AF` = PM/Water) %>% mutate(`log(1+r-AF)` = (log(1+(PM/Water)))) %>% unite(Sampling_Period, Sampling_Period, Site, remove= TRUE) %>% dplyr::select(ASV, Sampling_Period, `r-AF`, `log(1+r-AF)`) %>% mutate_at(vars(c(`r-AF`, `log(1+r-AF)`)), ~replace(., is.nan(.), 0)) %>% mutate(`r-AF`= na_if(`r-AF`, "Inf")) %>% mutate(`log(1+r-AF)`= na_if(`log(1+r-AF)`, "Inf"))
@@ -695,19 +541,17 @@ AF.summary.stats.Site <- rAF.values %>% group_by(Site) %>% get_summary_stats(`r-
 #various version of heat map using different data transformations to show enrichment in aerosol
 ggplot(rAF.values, aes(Sampling_Period, ASV, fill= `r-AF`)) + geom_tile()+ scale_fill_gradientn(colours = c("lightcyan3", "beige", "darkred"))+ theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
 ggplot(rAF.values, aes(Sampling_Period, ASV, fill= `log(1+r-AF)`)) + geom_tile()+ scale_fill_gradientn(colours = c("lightcyan3", "beige", "darkred"))+ theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
-ggplot(rAF.values.A, aes(Sampling_Period, ASV, fill= `log(1+r-AF)`)) + geom_tile()+ scale_fill_gradientn(colours = c("lightcyan3", "beige", "darkred"))+ theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
-ggplot(rAF.values.B, aes(Sampling_Period, ASV, fill= `log(1+r-AF)`)) + geom_tile()+ scale_fill_gradientn(colours = c("lightcyan3", "beige", "darkred"))+ theme_light() + scale_y_discrete(limits = rev(c("ASV1111", "ASV0389", "ASV1999", "ASV0309", "ASV2080","ASV1397", "ASV0546", "ASV0288", "ASV0529", "ASV0413","ASV0108","ASV0196","ASV0889", "ASV2444", "ASV0467")))
 
 #testing differences between calculated AFs
 AF.for.stats <- rAF.values %>% separate(Sampling_Period, c("Period", "Site"))
 pairwise.ASV <- pairwise.wilcox.test(AF.for.stats$`r-AF`, AF.for.stats$ASV,
-                                 p.adjust.method = "BH")
+                                     p.adjust.method = "BH")
 pairwise.ASV
 pairwise.period <- pairwise.wilcox.test(AF.for.stats$`r-AF`, AF.for.stats$Period,
-                                 p.adjust.method = "BH")
+                                        p.adjust.method = "BH")
 pairwise.period
 pairwise.site <- pairwise.wilcox.test(AF.for.stats$`r-AF`, AF.for.stats$Site,
-                                   p.adjust.method = "BH")
+                                      p.adjust.method = "BH")
 pairwise.site
 summary.stats.AF.by.Site <- rAF.values %>% separate(Sampling_Period, c("Period", "Site")) %>% group_by(Site) %>% get_summary_stats(`r-AF`, type = "median_iqr") #stratifying by Site
 summary.stats.AF.by.period <- rAF.values %>% separate(Sampling_Period, c("Period", "Site")) %>% group_by(Period) %>% get_summary_stats(`r-AF`, type = "median_iqr") #stratifying by sampling period
@@ -757,13 +601,13 @@ metadata.start.date <- metadata.with.sd %>% mutate(Sampling_Period = case_when(D
 
 # Using stop times as the water values rather than averages
 metadata.stop.date <- metadata.with.sd %>% mutate(Sampling_Period = case_when(Date == '2020-06-23' ~ "S1", 
-                                                                               '2020-07-07' == Date ~ "S2",
-                                                                               '2020-07-21' == Date ~ "S3", 
-                                                                               '2020-08-12' == Date ~ "S4",
-                                                                               "2020-08-18" == Date ~ "S5",
-                                                                               "2020-09-01" == Date ~ "S6",
-                                                                               "2020-09-15" == Date ~ "S7",
-                                                                               "2020-10-01" == Date ~ "S8"))
+                                                                              '2020-07-07' == Date ~ "S2",
+                                                                              '2020-07-21' == Date ~ "S3", 
+                                                                              '2020-08-12' == Date ~ "S4",
+                                                                              "2020-08-18" == Date ~ "S5",
+                                                                              "2020-09-01" == Date ~ "S6",
+                                                                              "2020-09-15" == Date ~ "S7",
+                                                                              "2020-10-01" == Date ~ "S8"))
 
 # Converting water metadata to averages over Sampling Periods 
 write.csv(metadata.with.sd, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/all.water.metadata.csv") # this data frame was exported to manipulate externally in Excel. To approximate the water conditions during the course of each aerosol sampling, water metadata collected at the start and end of each aerosol sampling period was averaged. 
@@ -797,26 +641,12 @@ met.station.data.2[is.na(met.station.data.2)] <- NA
 # AVERAGED
 all.metadata <- Sampling_Period_water_metadata %>% dplyr::left_join(met.station.data.2, by = c("Site", "Sampling_Period"), keep = F) %>% left_join(wind.data.avg.Sampling.Period.1, by = c("Site", "Sampling_Period"), keep = F)
 
-#metadata dataframe for n=16 for PM analysis
-#regressions for PM outcomes only (n=16)
-Sampling_Period_water_metadata.n16 <- read.csv("/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/n16metadata.csv", header = TRUE, na.strings = c(""," ", ".", "NA","#DIV/0!"))
-
-all.metadata.n16 <- Sampling_Period_water_metadata.n16 %>% dplyr::left_join(met.station.data.2, by = c("Site", "Sampling_Period"), keep = F) %>% left_join(wind.data.avg.Sampling.Period.1, by = c("Site", "Sampling_Period"), keep = F)
-
-#looking at ABUNDANCE data of dolichospermum rather than relative abundance 
-abundance.data <- RA.df.0 %>% group_by(Class, Genus, Species) %>% summarise_if(is.numeric, ~sum(na.exclude(.)))
-cyano.abundance.data <- abundance.data %>% filter(Class == "Cyanobacteria")
-cyano.abundance.data.1 <- cyano.abundance.data %>% mutate_at(vars(Species), ~replace_na(., "z.Not.Assigned")) %>% group_by(Species) %>% summarise_if(is.numeric, ~sum(na.exclude(.))) %>% dplyr::select("Species", 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B")
-class.abundance.data <- cyano.abundance.data %>% group_by(Class) %>% summarise_if(is.numeric, ~sum(na.exclude(.))) %>% dplyr::select("Class", 'S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B")
-
 # adding the relative abundances of bacteria and cyanobacteria in PM and water samples to the metadata 
-#RA.df.AF <- pivot_longer(RA.df.6, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample) 
-RA.df.AF <- pivot_longer(class.abundance.data, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample) 
+RA.df.AF <- pivot_longer(RA.df.6, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample) 
 class.RAs <- RA.df.AF %>% group_by(Class, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value)  
 class.RAs$Sampling_Period <- sub("^", "S", class.RAs$Sampling_Period) #don't run twice
 class.RAs.2 <- class.RAs %>% filter(Class == "Cyanobacteria") %>% pivot_wider(names_from = Class, values_from = c(PM, Water))
-species.RA.df.AF <- pivot_longer(cyano.abundance.data.1, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
-#species.RA.df.AF <- pivot_longer(species.RA.df.6, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
+species.RA.df.AF <- pivot_longer(species.RA.df.6, cols = c('S1_A', 'S2_A', 'S2_B', 'S3_A', 'S3_B', 'S4_A', 'S4_B', 'S5_A', 'S5_B', 'S6_B', 'S7_A', 'S7_B', 'S8_A', 'S8_B', "W1_A", "W2_A" , "W2_B" , "W3_A" , "W3_B" , "W4_A" , "W4_B" , "W5_A" , "W5_B",  "W6_B",  "W7_A"  ,"W7_B"  ,"W8_A",  "W8_B"), names_to = "Sample") %>% mutate(Sample_Type = case_when(str_detect(Sample, "S") ~ "PM", str_detect(Sample, "W") ~ "Water")) %>% mutate(Site = case_when(str_detect(Sample, "_A") ~ "A", str_detect(Sample, "_B") ~ "B")) %>% mutate_if(is.numeric, ~replace_na(., 0)) %>% mutate(Sampling_Period = case_when(str_detect(Sample, "1") ~ "1", str_detect(Sample, "2") ~ "2", str_detect(Sample, "3") ~ "3", str_detect(Sample, "4") ~ "4", str_detect(Sample, "5") ~ "5", str_detect(Sample, "6") ~ "6", str_detect(Sample, "7") ~ "7", str_detect(Sample, "8") ~ "8")) %>% dplyr::select(-Sample)
 species.RAs <- species.RA.df.AF %>% group_by(Species, Sampling_Period, Site) %>% pivot_wider(names_from = Sample_Type, values_from = value)
 species.RAs$Sampling_Period <- sub("^", "S", species.RAs$Sampling_Period) #don't run twice
 species.RAs.2 <- species.RAs %>% pivot_wider(names_from = Species, values_from = c(PM, Water)) 
@@ -824,7 +654,6 @@ relative.abundances <- class.RAs.2 %>% left_join(species.RAs.2, by = c("Site", "
 non.zeroes <- relative.abundances %>% ungroup(Sampling_Period, Site) %>% dplyr::select(-Sampling_Period, -Site) %>% select_if(colSums(.) != 0)
 relative.abundances.1 <- relative.abundances %>% dplyr::select(Site, Sampling_Period) %>% cbind(non.zeroes) %>% group_by(Site, Sampling_Period)
 regression.df.0 <- all.metadata %>% dplyr::left_join(relative.abundances.1, by = c("Site", "Sampling_Period"))
-regression.df.n16 <- all.metadata.n16 %>% dplyr::left_join(relative.abundances.1, by = c("Site", "Sampling_Period"))
 
 # Loading in individual PM2.5 mass concentrations readings from pDR data to add to metadata 
 col.names <- c("Site", "record", "ug/m3", "Temp", "RHumidity", "AtmoPressure", "Flags", "Time", "Date")
@@ -951,7 +780,6 @@ correlation.3 <- lm(correlation.2$A ~ correlation.2$B , data = correlation.2)
 summary(correlation.3)
 ggplot(correlation.2, aes(x = A, y = B)) + 
   geom_point() + 
-  xlim(0, 20) +
   stat_smooth(method = "lm", col = "black")
 # Combining readings from both Sites
 pdr.together <- no_outliers %>% group_by(Date) %>% summarise_at(vars(c("ug/m3")), ~mean(na.omit(.)))
@@ -959,21 +787,11 @@ pdr.together %>% identify_outliers(`ug/m3`) #confirmation of no more outliers
 pdr.dates <- as.data.frame(seq(as.Date("2020-06-11"), as.Date("2020-10-01"), by="days"))
 name <- "Date"
 colnames(pdr.dates) = name
-#averaging pooled PM values over each sampling period 
-pdr.together.1 <- pdr.together %>% mutate(Sampling_Period = case_when('2020-06-11' <= Date & Date <= '2020-06-23' ~ "S1", 
-                                       '2020-06-24' <= Date & Date <= '2020-07-07' ~ "S2",
-                                       '2020-07-08' <= Date & Date <= '2020-07-21' ~ "S3",
-                                       '2020-07-22' <= Date & Date <= '2020-08-03' ~ "S4",
-                                       "2020-08-12" <= Date & Date <= '2020-08-18' ~ "S5",
-                                       "2020-08-19" <= Date & Date <= '2020-09-01' ~ "S6",
-                                       "2020-09-02" <= Date & Date <= '2020-09-14' ~ "S7",
-                                       "2020-09-15" <= Date & Date <= '2020-10-01' ~  "S8")) %>% group_by(Sampling_Period) %>% summarise_at(vars(c("ug/m3")), ~mean(na.omit(.)))
-write.csv(pdr.together, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/pooled.pdr.daily.csv")
 
 # Adding Chlorophyll a and cyanobacterial relative abundance data to visualize alongside PM time series 
 Date <- c("2020-06-17", "2020-06-30", "2020-06-30", "2020-07-14","2020-07-14","2020-07-28","2020-07-28","2020-08-15","2020-08-15","2020-08-25","2020-09-08","2020-09-08","2020-09-22","2020-09-22") 
 dates <- as.data.frame(Date) %>% mutate(Date = as.Date(Date, "%Y-%m-%d"))
-cyano.RA <- regression.df.0 %>% dplyr::select(Site, Sampling_Period, CHLA_avg, Water_Cyanobacteria, Water_Dolichospermum_NIES41) %>% mutate(Water_Cyanobacteria = Water_Cyanobacteria*0.05) %>% mutate(Date = dates$Date) %>% dplyr::select(-Sampling_Period) 
+cyano.RA <- regression.df.0 %>% dplyr::select(Site, Sampling_Period, CHLA_avg, Water_Cyanobacteria, Water_Dolichospermum_NIES41) %>% mutate(Water_Cyanobacteria = Water_Cyanobacteria*10^2.5, Water_Dolichospermum_NIES41 = Water_Dolichospermum_NIES41*10^2) %>% mutate(Date = dates$Date) %>% dplyr::select(-Sampling_Period) 
 chla.with.PM <- pdr.together %>% left_join(cyano.RA, by = "Date", keep = FALSE) 
 chla.with.PM.1 <- chla.with.PM %>% mutate_if(is.numeric, ~replace_na(., NA))
 for.avg <- chla.with.PM.1 %>% select(`ug/m3`) %>% na.omit()
@@ -1038,8 +856,8 @@ pdr.together.1 <- pdr.together %>% mutate(exceeds.baseline = case_when(
     pdr.together$`ug/m3` > 12 ~ "1",
     pdr.together$`ug/m3` < 12 ~ "0")) %>% 
   mutate(Bloom = case_when(
-    pdr.together$Date >= "2020-06-23" & pdr.together$Date <= "2020-08-03"~ "Bloom",
-    pdr.together$Date < "2020-06-23" | pdr.together$Date > "2020-08-03"~ "No Bloom"))
+    pdr.together$Date >= "2020-06-23" & pdr.together$Date <= "2020-07-21"~ "Bloom",
+    pdr.together$Date < "2020-06-23" | pdr.together$Date > "2020-07-21"~ "No Bloom"))
 myDate = as.POSIXct(pdr.together.1$Date)
 pdr.together.2 <- pdr.together.1 %>% mutate(month = format(myDate,"%b")) #for some reason it's one off. (the first of every month is classified as the month prior--fix this later to save time)
 table(pdr.together.2$month)
@@ -1062,12 +880,9 @@ wilcox.summary.stats
 ggplot(data = pdr.together.test, aes(x = Bloom, y = `ug/m3`, color=Bloom)) + geom_boxplot() + geom_jitter(aes(color=Bloom, alpha=Bloom)) + theme_bw() + scale_color_manual(values=c("gray50", "gray")) + xlab(" ") + ylab(expression(µg~m^-3~PM[2.5])) + scale_alpha_manual(values=c(1,0.4))
 
 ## ------------------------------- Univariate Regressions to examine environmental drivers of aquatic Cyanobacteria in PM ----------------------
-# linear regressions for relative abundance outcomes
+# linear regressions
 regression.df <- regression.df.0 %>% dplyr::select(-Site, -Sampling_Period) %>% mutate_if(is.integer, as.numeric)
 colnames(regression.df) #need this for copying and pasting strings (column names) 
-regression.df.n16 <- regression.df.n16 %>% dplyr::select(-Site, -Sampling_Period) %>% mutate_if(is.integer, as.numeric)
-colnames(regression.df.n16)
-
 # Plot functions
 linear.regression.plot <- function(outcome.var, predictor.var) {
   lm(outcome.var ~ predictor.var, data = regression.df)
@@ -1075,7 +890,6 @@ linear.regression.plot <- function(outcome.var, predictor.var) {
     geom_point() +
     stat_smooth(method = "lm", col = "black") + theme_bw() 
 } 
-
 # Plot with Site specifications
 linear.regression.plot.by.site <- function(outcome.var, predictor.var)  { 
   ggplot(regression.df.0, aes(x =  predictor.var, y = outcome.var, color = Site)) + geom_point(aes(color= Site)) + stat_smooth(method = "lm", fill = NA) + theme_bw() + scale_color_manual(values = c("Black", "Gray"))
@@ -1107,27 +921,17 @@ df.4 <- df.3 %>%dplyr::select("terms")
 df.5 <- apply(df.4, 2, as.character) 
 model <- df.5[-1,]
 model <- data.frame(model) 
-significant.predictors.cyanos <- cbind(model, df.1) %>% dplyr::filter(p.value < .05)
+significant.predictors.cyanos <- cbind(model, df.1) %>% dplyr::filter(p.value < .1)
 all.predictors.cyanos <- cbind(model, df.1)
 #visualizations
-cyano.1 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_z.Not.Assigned) + labs(x = "Unassigned Cyanos in PM", y = "Cyanobacteria in PM") 
-cyano.2 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Cyanobium_PCC6307) + labs(x = "Cyanobium in PM", y = "Cyanobacteria in PM")
-cyano.3 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Anabaena) + labs(x = "Anabaena in PM", y = "Cyanobacteria in PM") 
-cyano.4 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Haloleptolyngbya) + labs(x = "Haloleptolyngbya in PM", y = "Cyanobacteria in PM") 
-cyano.5 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Leptolyngbya) + labs(x = "Leptolyngbya in PM", y = "Cyanobacteria in PM") 
-cyano.6 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Pseudanabaena_PCC7429) + labs(x = "Pseudanabaena in PM", y = "Cyanobacteria in PM")
-cyano.7 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Gloeocapsa) + labs(x = "Gloeocapsa in PM", y = "Cyanobacteria in PM") 
-cyano.8 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Anabaena_PCC7108) + labs(x = "Anabaena PCC in PM", y = "Cyanobacteria in PM")
-cyano.9 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Nodularia_PCC9350) + labs(x = "Nodularia in PM", y = "Cyanobacteria in PM") 
-cyano.10 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Tolypothrix_PCC7601) + labs(x = "Tolypothrix in PM", y = "Cyanobacteria in PM")
-cyano.11 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Synechococcus_CC9902) + labs(x = "Synechococcus  in PM", y = "Cyanobacteria in PM") 
-cyano.12 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM.avg) + labs(x = "PM mass concentration", y = "Cyanobacteria in PM")
-cyano.13 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$DO.saturation_avg) + labs(x = "DO Saturation", y = "Cyanobacteria in PM")
-
-cyano.1 + cyano.2 + cyano.3 + cyano.4 + cyano.5 + cyano.6 + cyano.7 + cyano.8 + cyano.9 + cyano.10 + cyano.11 + cyano.12 + cyano.13
+cyano.1 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Pseudanabaena_PCC7429) + labs(x = "Pseudanabaena in PM", y = "Cyanobacteria in PM") 
+cyano.2 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Anabaena) + labs(x = "Anabaena in PM", y = "Cyanobacteria in PM")
+cyano.3 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Cyanobium_PCC6307) + labs(x = "Cyanobium in PM", y = "Cyanobacteria in PM") 
+cyano.4 <- linear.regression.plot(regression.df$PM_Cyanobacteria, regression.df$PM_Gloeocapsa) + labs(x = "Gloeocapsa in PM", y = "Cyanobacteria in PM") 
+cyano.1 + cyano.2 + cyano.3 + cyano.4
 
 # Outcome Variable: Cyanobacteria in water
-regression.df  <- regression.df %>% dplyr::select(Water_Cyanobacteria, everything()) #reordering df for for loop
+regression.df  <- regression.df %>%dplyr::select(Water_Cyanobacteria, everything()) #reordering df for for loop
 columns <- colnames(regression.df)
 lm.test <- list()
 for(i in 2:ncol(regression.df)){
@@ -1161,18 +965,16 @@ df.4 <- df.3 %>%dplyr::select("terms")
 df.5 <- apply(df.4, 2, as.character) 
 model <- df.5[-1,]
 model <- data.frame(model) 
-significant.predictors.PM_Microcystis_PCC7914 <- cbind(model, df.1) %>% dplyr::filter(p.value < .05)
+significant.predictors.PM_Microcystis_PCC7914 <- cbind(model, df.1) %>% dplyr::filter(p.value < .1)
 all.predictors.PM_Microcystis_PCC7914 <- cbind(model, df.1)
 #visualizations
 micro.1 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regression.df$PM_Dolichospermum_NIES41) + labs(x = "Dolichospermum in PM", y = "Microcystis in PM")
-micro.2 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regression.df$PM_Aphanizomenon_NIES81) + labs(x = "Aphanizomenon in PM", y = "Microcystis in PM")
-micro.3 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regression.df$Water_Leptolyngbya)+ labs(x = "Leptolyngbya in Water", y = "Microcystis in PM")
-micro.4 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regression.df$Water_Geminocystis_PCC6308) + labs(x = "Geminocystis in Water", y = "Microcystis in PM")
-micro.5 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regression.df$PM_Leptolyngbya) + labs(x = "Leptolyngbya in PM", y = "Microcystis in PM")
-micro.6 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regression.df$Water_Cyanobium_PCC6307) + labs(x = "Cyanobium in Water", y = "Microcystis in PM")
-micro.7 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regression.df$Water_Cyanobacteria) + labs(x = "Cyanobacteria in Water", y = "Microcystis in PM")
+micro.2 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regression.df$PM_Cyanobium_PCC6307) + labs(x = "Cyanobium in PM", y = "Microcystis in PM")
+micro.3 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regression.df$Water_Haloleptolyngbya)+ labs(x = "Haloleptolyngbya in Water", y = "Microcystis in PM")
+micro.4 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regression.df$Water_Gloeocapsa) + labs(x = "Gloeocapsa in Water", y = "Microcystis in PM")
+micro.5 <- linear.regression.plot(regression.df$PM_Microcystis_PCC7914, regression.df$NH4_avg) + labs(x = "NH4 concentration", y = "Microcystis in PM")
 
-micro.1 + micro.2 + micro.3 + micro.4 + micro.5 + micro.6 + micro.7
+micro.1 + micro.2 + micro.3 + micro.4 + micro.5 
 
 # Outcome Variable: Microcystis in water
 regression.df  <- regression.df %>%dplyr::select(Water_Microcystis_PCC7914, everything()) #reordering df for for loop
@@ -1214,11 +1016,10 @@ all.predictors.PM_Dolichospermum_NIES41 <- cbind(model, df.1)
 #visualizations
 dolicho.1 <- linear.regression.plot(regression.df$PM_Dolichospermum_NIES41, regression.df$PM_Microcystis_PCC7914) + labs(x = "Microcystis in PM", y = "Dolichospermum in PM")
 dolicho.2 <- linear.regression.plot(regression.df$PM_Dolichospermum_NIES41, regression.df$PM_Aphanizomenon_NIES81) + labs(x = "Aphanizomenon in PM", y = "Dolichospermum sp. in PM")
-dolicho.3 <- linear.regression.plot(regression.df$PM_Dolichospermum_NIES41, regression.df$Water_Geminocystis_PCC6308) + labs(x = "Water Geminocystis", y = "Dolichospermum in PM")
-dolicho.4 <- linear.regression.plot(regression.df$PM_Dolichospermum_NIES41, regression.df$NH4_avg) + labs(x = "NH4", y = "Dolichospermum in PM")
-dolicho.5 <- linear.regression.plot(regression.df$PM_Dolichospermum_NIES41, regression.df$Water_Leptolyngbya) + labs(x = "Water Leptolygnbya", y = "Dolichospermum in PM")
+dolicho.3 <- linear.regression.plot(regression.df$PM_Dolichospermum_NIES41, regression.df$C.to.N_avg) + labs(x = "C:N ratio", y = "Dolichospermum in PM")
+dolicho.4 <- linear.regression.plot(regression.df$PM_Dolichospermum_NIES41, regression.df$Relative.Humidity) + labs(x = "Relative Humidity", y = "Dolichospermum in PM")
 
-dolicho.1 + dolicho.2 + dolicho.3 + dolicho.4 + dolicho.5  
+dolicho.1 + dolicho.2 + dolicho.3 + dolicho.4 
 
 #Outcome Variable: Dolichospermum in Water
 regression.df  <- regression.df %>% dplyr::select(Water_Dolichospermum_NIES41 , everything()) #reordering df for for loop
@@ -1260,39 +1061,28 @@ all.predictors.PM.avg <- cbind(model, df.1)
 #visualizations
 PM.1 <- linear.regression.plot(regression.df$PM.avg, regression.df$Air.Temp) + labs(x = "Air Temperature", y = "PM mass concentration") + ylim(c(0,16))
 PM.2 <- linear.regression.plot(regression.df$PM.avg, regression.df$Solar.Rad) + labs(x = "Solar Irradiance", y = "PM mass concentration")+ ylim(c(0,16))
-PM.3 <- linear.regression.plot(regression.df$PM.avg, regression.df$C.to.N_avg) + labs(x = "C:N molar ratio", y = "PM mass concentration")+ ylim(c(0,16))
+PM.3 <- linear.regression.plot(regression.df$PM.avg, regression.df$Salinity_avg ) + labs(x = "Salinity", y = "PM mass concentration")+ ylim(c(0,16))
 PM.4 <- linear.regression.plot(regression.df$PM.avg, regression.df$Relative.Humidity ) + labs(x = "Relative Humidity", y = "PM mass concentration")+ ylim(c(0,16))
-PM.5 <- linear.regression.plot(regression.df$PM.avg, regression.df$PM_Nodularia_PCC9350) + labs(x = "Nodularia in PM", y = "PM mass concentration")+ ylim(c(0,16))
-PM.6 <- linear.regression.plot(regression.df$PM.avg, regression.df$PM_Gloeocapsa) + labs(x = "Gloeocapsa in PM", y = "PM mass concentration")+ ylim(c(0,16))
-PM.7 <- linear.regression.plot(regression.df$PM.avg, regression.df$PM_Cyanobium_PCC6307) + labs(x = "Cyanobium in PM", y = "Ambient PM concentration")+ ylim(c(0,16))
-PM.8 <- linear.regression.plot(regression.df$PM.avg, regression.df$PM_z.Not.Assigned) + labs(x = "Unassigned Cyanos in PM", y = "PM mass concentration")+ ylim(c(0,16))
-PM.9 <- linear.regression.plot(regression.df$PM.avg, regression.df$PM_Anabaena) + labs(x = "Anabaena in PM", y = "PM mass concentration")+ ylim(c(0,16))
-PM.10 <- linear.regression.plot(regression.df$PM.avg, regression.df$Atm.Pressure) + labs(x = "Atmospheric Pressure", y = "PM mass concentration")+ ylim(c(0,16))
-PM.11 <- linear.regression.plot(regression.df$PM.avg, regression.df$Temp_avg) + labs(x = "Water Temperature", y = "PM mass concentration")+ ylim(c(0,16))
-PM.12 <- linear.regression.plot(regression.df$PM.avg, regression.df$PM_Cyanobacteria) + labs(x = "Cyanobacteria in PM", y = "PM mass concentration")+ ylim(c(0,16))
-PM.13 <- linear.regression.plot(regression.df$PM.avg, regression.df$Water_Dolichospermum_NIES41) + labs(x = "Dolichospermum in Water", y = "PM mass concentration")+ ylim(c(0,16))
-PM.14 <- linear.regression.plot(regression.df$PM.avg, regression.df$Water_Pseudanabaena_PCC7429) + labs(x = "Pseudanabaena in Water", y = "PM mass concentration")+ ylim(c(0,16))
-PM.15 <- linear.regression.plot(regression.df$PM.avg, regression.df$Precipitation.sum) + labs(x = "Precipitation Sum", y = "PM mass concentration")+ ylim(c(0,16))
-PM.16 <- linear.regression.plot(regression.df$PM.avg, regression.df$PM_Haloleptolyngbya) + labs(x = "Haloleptolyngbya in PM", y = "PM mass concentration")+ ylim(c(0,16))
-PM.17 <- linear.regression.plot(regression.df$PM.avg, regression.df$Water_Caenarcaniphilales_XX) + labs(x = "Caenarcaniphilales in Water", y = "PM mass concentration")+ ylim(c(0,16))
+PM.5 <- linear.regression.plot(regression.df$PM.avg, regression.df$PM_z.Not.Assigned ) + labs(x = "Unassigned Cyanobacteria in PM", y = "PM mass concentration")+ ylim(c(0,16))
+PM.6 <- linear.regression.plot(regression.df$PM.avg, regression.df$Water_Pseudanabaena_PCC7429) + labs(x = "Pseudanabaena in Water", y = "PM mass concentration")+ ylim(c(0,16))
+PM.7 <- linear.regression.plot(regression.df$PM.avg, regression.df$C.to.N_avg) + labs(x = "C:N Ratio", y = "Ambient PM concentration")+ ylim(c(0,16))
+PM.8 <- linear.regression.plot(regression.df$PM.avg, regression.df$Water_Anabaena) + labs(x = "Anabaena in Water", y = "PM mass concentration")+ ylim(c(0,16))
+PM.9 <- linear.regression.plot(regression.df$PM.avg, regression.df$Water_Dolichospermum_NIES41) + labs(x = "Dolichospermum in Water", y = "PM mass concentration")+ ylim(c(0,16))
+PM.10 <- linear.regression.plot(regression.df$PM.avg, regression.df$Water_Caenarcaniphilales_XX ) + labs(x = "Caenarcaniphilales in Water", y = "PM mass concentration")+ ylim(c(0,16))
+PM.11 <- linear.regression.plot(regression.df$PM.avg, regression.df$Water_Nostoc_PCC7524) + labs(x = "Nostoc in Water", y = "PM mass concentration")+ ylim(c(0,16))
+PM.12 <- linear.regression.plot(regression.df$PM.avg, regression.df$PM_Caldora_VP642b) + labs(x = "Caldora in PM", y = "PM mass concentration")+ ylim(c(0,16))
+PM.13 <- linear.regression.plot(regression.df$PM.avg, regression.df$Water_Caenarcaniphilales_XX) + labs(x = "Caenarcaniphilales in Water", y = "PM mass concentration")+ ylim(c(0,16))
 
-
-
-PM.x <- linear.regression.plot(regression.df$PM.avg, regression.df$Water_Cyanobacteria) + labs(x = "Cyanos in Water", y = "PM mass concentration")+ ylim(c(0,16))
-PM.xx <- linear.regression.plot(regression.df$PM.avg, regression.df$CHLA_avg) + labs(x = "CHLA in Water", y = "PM mass concentration")+ ylim(c(0,16))
-PM.xxx <- linear.regression.plot(regression.df$PM.avg, regression.df$Water_Dolichospermum_NIES41) + labs(x = "Dolichos in Water", y = "PM mass concentration")+ ylim(c(0,16))
-PM.x + PM.xx + PM.xxx
-
-PM.1 + PM.2 + PM.3 + PM.4 + PM.5 + PM.6 + PM.7 + PM.8 + PM.9 + PM.10 + PM.11 + PM.12 + PM.13 + PM.14 + PM.15 + PM.16 + PM.17 
-
+PM.1 + PM.2 + PM.3 + PM.4 + PM.5 + PM.6 + PM.7 + PM.8 + PM.9 + PM.10 + PM.11 + PM.12 + PM.13 
 
 #Key cyanos in air and water 
 Cyano.plot <- linear.regression.plot(regression.df$Water_Cyanobacteria, regression.df$PM_Cyanobacteria) + labs(x = "Water", y = "PM") + ggtitle("Cyanobacteria")
 Dolicho.plot <- linear.regression.plot(regression.df$Water_Dolichospermum_NIES41, regression.df$PM_Dolichospermum_NIES41) + labs(x = "Water", y = "PM") + ggtitle("Dolichospermum")
 Micro.plot <- linear.regression.plot(regression.df$Water_Microcystis_PCC7914, regression.df$PM_Microcystis_PCC7914) + labs(x = "Water", y = "PM") + ggtitle("Microcystis")
 Aphani.plot <- linear.regression.plot(regression.df$Water_Aphanizomenon_NIES81, regression.df$PM_Aphanizomenon_NIES81) + labs(x = "Water", y = "PM") + ggtitle("Aphanizomenon")
-Cyano.plot + Aphani.plot + Dolicho.plot + Micro.plot
+Caenar.plot <- linear.regression.plot(regression.df$Water_Caenarcaniphilales_XX, regression.df$PM_Caenarcaniphilales_XX) + labs(x = "Water", y = "PM") + ggtitle("Caenarcaniphilales")
 
+Cyano.plot + Aphani.plot + Dolicho.plot + Micro.plot
 #Outcome Variable: Microcystin 
 colnames(regression.df)
 regression.df  <- regression.df %>% dplyr::select(MC_avg , everything()) #reordering df for for loop
@@ -1336,10 +1126,10 @@ PM.1.s + PM.2.s + PM.3.s + PM.4.s + PM.5.s + PM.6.s + PM.7.s + PM.8.s + PM.9.s
 
 #showing results from using water values as averages between two dates, then only start and only stop dates WRT aerosol sampling
 #Exporting Statistically Significant Environmental Drivers from each aerosol linear regression model series of interest
-write.csv(all.predictors.cyanos, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/all.predictors.cyanos.csv")
-write.csv(all.predictors.PM_Dolichospermum_NIES41, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/all.predictors.dolicho.csv")
-write.csv(all.predictors.PM_Microcystis_PCC7914, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/all.predictors.micro.csv")
-write.csv(all.predictors.PM.avg, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/all.predictors.PM.csv")
+write.csv(significant.predictors.cyanos, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.cyanos.csv")
+write.csv(significant.predictors.PM_Dolichospermum_NIES41, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.dolicho.csv")
+write.csv(significant.predictors.PM_Microcystis_PCC7914, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.micro.csv")
+write.csv(significant.predictors.PM.avg, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/avg.PM.csv")
 write.csv(regression.df.0, "/Users/hplaas/OneDrive - University of North Carolina at Chapel Hill/Coding/R/Chowan Data/CHHEPilotStudy/Chowan_ASVs/files.for.manipulation/predictor.variables.csv")
 
 #start only
